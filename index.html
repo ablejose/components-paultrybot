@@ -1,445 +1,1042 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PoultryBot — Component Datasheet & Build Reference</title>
-<meta name="description" content="Component datasheet for an Octopus-style autonomous ground robot for broiler poultry houses: cleaning (litter scarifying + biocide) and 24/7 surveillance. Why each part, how it works, with architecture, power, data-flow and layout diagrams." />
-<link rel="stylesheet" href="style.css" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Building a Poultry Robot — A 50-Level Textbook</title>
+<meta name="description" content="A ground-up, 50-level textbook on designing an Octopus-style poultry cleaning + surveillance ground robot. Level 1 is pure foundations (bird biology, ammonia, disease); each level builds on the one below, ending at the complete integrated robot. Clear detail and friendly diagrams throughout."/>
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 
-<header class="nav">
-  <div class="nav-inner">
-    <span class="brand"><span class="dot"></span> PoultryBot <small>&nbsp;/ component datasheet</small></span>
-    <nav class="nav-links">
-      <a href="#overview">Overview</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#components">Components</a>
-      <a href="#power">Power</a>
-      <a href="#dataflow">Data flow</a>
-      <a href="#layout">Layout</a>
-      <a href="#bom">BOM</a>
-      <a href="#build">Build order</a>
-    </nav>
+<button class="menu-btn" id="menuBtn">☰ Contents</button>
+<div class="scrim" id="scrim"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sb-head">
+    <div class="brand"><span class="dot"></span> PoultryBot</div>
+    <div class="sb-sub">Building a Poultry Robot — a 50-level textbook</div>
   </div>
-</header>
+  <nav class="toc" id="toc">
+    <div class="part">Part I · Foundations — the why</div>
+    <a href="#l1"><span class="lv">1</span> The bird and the barn</a>
+    <a href="#l2"><span class="lv">2</span> Why density creates fragility</a>
+    <a href="#l3"><span class="lv">3</span> Why litter exists</a>
+    <a href="#l4"><span class="lv">4</span> Why moisture is the root enemy</a>
+    <a href="#l5"><span class="lv">5</span> Why ammonia forms</a>
+    <a href="#l6"><span class="lv">6</span> Why ammonia &amp; dust harm birds</a>
+    <a href="#l7"><span class="lv">7</span> Why pathogens thrive</a>
+    <a href="#l8"><span class="lv">8</span> Why dead birds are dangerous</a>
+    <a href="#l9"><span class="lv">9</span> Why early detection wins</a>
+    <a href="#l10"><span class="lv">10</span> The two master jobs</a>
 
-<div class="hero">
-  <div class="hero-inner">
-    <h1>PoultryBot — Component Datasheet</h1>
-    <p>An <b>Octopus-style autonomous ground robot</b> for broiler houses. It drives across the litter to <b>clean</b> (aerate litter + fog biocide) and <b>watch the flock</b> (health, mortality, environment) — 24/7. This page is the parts reference: what each component is, <b>why</b> it is needed, and <b>how</b> it works.</p>
-    <div class="chips">
-      <span class="chip accent">Ground AMR</span>
-      <span class="chip">Broiler / deep-litter</span>
-      <span class="chip">Litter scarifier</span>
-      <span class="chip">Biocide nebuliser</span>
-      <span class="chip">Edge-AI surveillance</span>
-      <span class="chip">Self-docking</span>
+    <div class="part">Part II · The human labor</div>
+    <a href="#l11"><span class="lv">11</span> The stockperson's day</a>
+    <a href="#l12"><span class="lv">12</span> Manual litter management</a>
+    <a href="#l13"><span class="lv">13</span> Manual cleaning &amp; disinfection</a>
+    <a href="#l14"><span class="lv">14</span> Manual health &amp; mortality checks</a>
+    <a href="#l15"><span class="lv">15</span> Manual environment &amp; equipment</a>
+    <a href="#l16"><span class="lv">16</span> Why manual labor can't scale</a>
+
+    <div class="part">Part III · From labor to function</div>
+    <a href="#l17"><span class="lv">17</span> The translation principle</a>
+    <a href="#l18"><span class="lv">18</span> The cleaning function set</a>
+    <a href="#l19"><span class="lv">19</span> The surveillance function set</a>
+    <a href="#l20"><span class="lv">20</span> Why a ground robot</a>
+
+    <div class="part">Part IV · Mechanics — the body</div>
+    <a href="#l21"><span class="lv">21</span> The chassis: a frame for forces</a>
+    <a href="#l22"><span class="lv">22</span> Sealing, corrosion &amp; washdown</a>
+    <a href="#l23"><span class="lv">23</span> Locomotion: wheels vs tracks</a>
+    <a href="#l24"><span class="lv">24</span> Traction &amp; ground pressure</a>
+    <a href="#l25"><span class="lv">25</span> Suspension &amp; stability</a>
+    <a href="#l26"><span class="lv">26</span> Drive motors: torque &amp; gearing</a>
+    <a href="#l27"><span class="lv">27</span> Motor drivers (ESCs)</a>
+    <a href="#l28"><span class="lv">28</span> Odometry: encoders &amp; IMU</a>
+
+    <div class="part">Part V · The cleaning payload</div>
+    <a href="#l29"><span class="lv">29</span> The scarifier: aeration</a>
+    <a href="#l30"><span class="lv">30</span> Depth control: height actuator</a>
+    <a href="#l31"><span class="lv">31</span> The biocide system</a>
+    <a href="#l32"><span class="lv">32</span> Nebulisation: droplet physics</a>
+    <a href="#l33"><span class="lv">33</span> Payload integration &amp; timing</a>
+
+    <div class="part">Part VI · Perception — the senses</div>
+    <a href="#l34"><span class="lv">34</span> Sensing = two jobs at once</a>
+    <a href="#l35"><span class="lv">35</span> LiDAR: seeing with light</a>
+    <a href="#l36"><span class="lv">36</span> Depth &amp; stereo cameras</a>
+    <a href="#l37"><span class="lv">37</span> RGB vision &amp; the AI eye</a>
+    <a href="#l38"><span class="lv">38</span> Thermal imaging</a>
+    <a href="#l39"><span class="lv">39</span> Proximity, bumpers &amp; safety net</a>
+
+    <div class="part">Part VII · Environmental sensing</div>
+    <a href="#l40"><span class="lv">40</span> Gas sensing: NH3 &amp; CO2</a>
+    <a href="#l41"><span class="lv">41</span> Climate &amp; dust</a>
+    <a href="#l42"><span class="lv">42</span> Litter moisture, light &amp; sound</a>
+
+    <div class="part">Part VIII · The brain</div>
+    <a href="#l43"><span class="lv">43</span> Two brains: smart vs safe</a>
+    <a href="#l44"><span class="lv">44</span> Edge AI: how machines recognise</a>
+    <a href="#l45"><span class="lv">45</span> The real-time MCU &amp; buses</a>
+
+    <div class="part">Part IX · Power</div>
+    <a href="#l46"><span class="lv">46</span> Energy: chemistry &amp; the BMS</a>
+    <a href="#l47"><span class="lv">47</span> Distribution &amp; self-docking</a>
+
+    <div class="part">Part X · Autonomy &amp; the whole</div>
+    <a href="#l48"><span class="lv">48</span> Navigation: SLAM &amp; planning</a>
+    <a href="#l49"><span class="lv">49</span> Safety, biosecurity &amp; life</a>
+    <a href="#l50"><span class="lv">50</span> Integration: the complete robot</a>
+  </nav>
+</aside>
+
+<div class="wrap">
+
+  <header class="cover">
+    <div class="cover-in">
+      <div class="kicker">A ground-up engineering textbook</div>
+      <h1>Building a Poultry Robot,<br/>One Level at a Time</h1>
+      <p class="tag">From the biology of a single bird to a complete autonomous machine that cleans and guards a broiler house — 50 levels, each one built on the level below it.</p>
+      <div class="meta">
+        <span><b>50</b> levels</span>
+        <span><b>10</b> parts</span>
+        <span>Model: <b>Octopus-style ground robot</b></span>
+        <span>Farm: <b>Broiler / deep-litter</b></span>
+      </div>
     </div>
-  </div>
-</div>
+  </header>
 
-<main>
-
-  <section id="overview">
-    <h2><span class="num">01</span>Overview</h2>
-    <p class="lead">The design copies the working principle of the Octopus Biosafety ground robot (France): a low, self-recharging, all-terrain platform that continuously scarifies litter and nebulises disinfectant while mapping the barn environment — extended here with an edge-AI perception stack for mortality and health surveillance.</p>
-    <div class="grid">
-      <div class="card"><div class="kpi">9</div><h4>Subsystems</h4><p>Chassis, drive, cleaning payload, perception, environment, compute, power, comms, safety.</p></div>
-      <div class="card"><div class="kpi">2</div><h4>Core jobs</h4><p>Constant cleaning (litter + disinfection) and constant surveillance (health + climate).</p></div>
-      <div class="card"><div class="kpi">24V</div><h4>Power bus</h4><p>LiFePO4 pack feeding a protected 24V bus with 12V / 5V rails for logic and sensors.</p></div>
-      <div class="card"><div class="kpi">24/7</div><h4>Duty cycle</h4><p>Dock-and-go patrols with autonomous recharge between cleaning/scan passes.</p></div>
-    </div>
-    <div class="callout">Read every component row as <b>What &rarr; Why &rarr; How</b>. The "Example part" column names a concrete, buyable component so you can source a first prototype — swap freely for equivalents.</div>
-  </section>
-
-  <section id="architecture">
-    <h2><span class="num">02</span>System architecture</h2>
-    <p class="lead">How the blocks connect. A high-level AI computer (Jetson) handles perception, mapping and planning; a real-time microcontroller (MCU) owns safety-critical motor and tool control. Power flows from the battery through protection to a 24V bus and stepped-down rails.</p>
-    <div class="diagram">
-      <pre class="mermaid">
-flowchart TD
-  subgraph POWER["Power"]
-    BAT["LiFePO4 24V pack"] --> BMS["BMS + protection"]
-    BMS --> BUS["24V main bus"]
-    BUS --> D12["DC-DC 12V"]
-    BUS --> D5["DC-DC 5V"]
-  end
-  subgraph SENSE["Perception & environment"]
-    LID["2D/3D LiDAR"]
-    CAMS["RGB + thermal + depth cameras"]
-    ENV["NH3 / CO2 / temp / RH / PM"]
-    MIC["Mic array"]
-    ODO["IMU + wheel encoders"]
-  end
-  subgraph BRAIN["Compute"]
-    JET["Jetson Orin — AI, SLAM, planning"]
-    MCU["STM32 MCU — real-time control + safety"]
-  end
-  subgraph ACT["Actuators"]
-    DRV["Motor drivers"] --> MOT["Drive motors"]
-    SCAR["Scarifier drum motor"]
-    LIN["Tool height actuator"]
-    PUMP["Nebuliser pump + nozzles"]
-  end
-  COMMS["WiFi / 4G"] --> CLOUD[("Cloud dashboard & alerts")]
-
-  LID --> JET
-  CAMS --> JET
-  MIC --> JET
-  ENV --> MCU
-  ODO --> MCU
-  JET <--> MCU
-  JET --> COMMS
-  MCU --> DRV
-  MCU --> SCAR
-  MCU --> LIN
-  MCU --> PUMP
-  BUS --> DRV
-  D12 --> LID
-  D12 --> PUMP
-  D12 --> LIN
-  D5 --> JET
-  D5 --> MCU
-  D5 --> CAMS
-      </pre>
-      <div class="caption">Figure 1 — Block architecture. Solid arrows = data/command; power rails feed compute, sensors and actuators.</div>
-    </div>
-  </section>
-
-  <section id="components">
-    <h2><span class="num">03</span>Component datasheet</h2>
-    <p class="lead">Grouped by subsystem. Each table: the component, an example part, why it exists on this robot, and how it works.</p>
-
-    <!-- 1 CHASSIS -->
-    <div class="subsys">
-      <span class="tag">1 · Chassis & mobility</span>
-      <h3>The body that survives a poultry house</h3>
-      <p class="desc">A low, sealed, corrosion-proof platform that carries every module and can cross loose, uneven, damp litter without bogging down or letting dust and ammonia inside.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">Frame / chassis</td><td>Welded 6061 aluminium or 304 stainless skeleton</td><td>Rigid mounting for all subsystems; must resist constant washdown, moisture and ammonia corrosion.</td><td>Load-bearing skeleton; forces from wheels and scarifier transfer through it instead of flexing sensitive electronics.</td></tr>
-          <tr><td class="part">Sealed shell</td><td>IP65+ ABS/polycarbonate enclosure with gaskets</td><td>Keeps dust, litter, moisture and disinfectant out of electronics; lets you pressure-wash the robot between flocks.</td><td>Gasketed panels + cable glands form a continuous barrier; internal air kept at slight positive pressure by fan+filter.</td></tr>
-          <tr><td class="part">All-terrain wheels</td><td>4&times; 150–200 mm ribbed pneumatic/foam wheels</td><td>Large contact patch floats over deep litter; ribs give traction on loose bedding so the bot does not dig in.</td><td>Big diameter lowers ground pressure; tread grips the friable top layer to pull the chassis forward.</td></tr>
-          <tr><td class="part">Compliant suspension</td><td>Rocker mounts / spring dampers per wheel</td><td>Keeps all wheels loaded on lumps and keeps cameras/LiDAR steady for clean data.</td><td>Passive springs let each wheel move independently over bumps while the chassis stays level.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <!-- 2 DRIVE -->
-    <div class="subsys">
-      <span class="tag">2 · Drive & motion control</span>
-      <h3>Making it move — precisely and slowly</h3>
-      <p class="desc">Differential drive gives torque at crawl speed (safe around birds) and turn-in-place agility. Encoders + IMU let the robot know where it is.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">Drive gearmotors</td><td>2&times; 24V BLDC gearmotors, ~100–200 W, high reduction</td><td>Deliver high low-speed torque to push through litter without stalling; brushless = long life, low maintenance.</td><td>Electromagnet coils spin the rotor; the gearbox trades speed for torque so the bot crawls with force.</td></tr>
-          <tr><td class="part">Motor driver / ESC</td><td>ODrive or VESC (dual-channel)</td><td>Turns MCU commands into precise, current-limited motor power; protects motors from overload.</td><td>Switches battery current to the motor coils with PWM; closed-loop control regulates speed/torque.</td></tr>
-          <tr><td class="part">Wheel encoders</td><td>Quadrature / hall encoders on each drive motor</td><td>Provide odometry (distance & speed) for navigation and closed-loop driving.</td><td>Count pulses as the shaft turns; pulse rate = speed, total count = distance travelled.</td></tr>
-          <tr><td class="part">IMU (9-DOF)</td><td>Bosch BNO085 / BMI270</td><td>Gives heading and tilt; fused with odometry it corrects wheel slip on loose litter.</td><td>MEMS accelerometer + gyroscope + magnetometer sense motion and orientation in 3 axes.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <!-- 3 CLEANING -->
-    <div class="subsys">
-      <span class="tag">3 · Cleaning payload</span>
-      <h3>The Octopus core: scarify + disinfect</h3>
-      <p class="desc">The two functions that define an Octopus-style robot. Aerating litter keeps it dry and low-ammonia; nebulising biocide cuts the pathogen load and reduces antibiotic use.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">Scarifier drum</td><td>Rotating tine/rake drum + 24V motor &amp; gearbox</td><td>Aerates and de-cakes litter &rarr; moisture evaporates, ammonia (NH3) generation drops, footpad health improves.</td><td>Spinning tines dig into the top litter layer and lift/mix it with air as the robot drives forward.</td></tr>
-          <tr><td class="part">Tool height actuator</td><td>12V linear actuator, 50–100 mm stroke</td><td>Sets scarifying depth and lifts the drum clear for transit, docking and turns.</td><td>Motor turns a lead-screw that extends/retracts the rod, raising or lowering the drum.</td></tr>
-          <tr><td class="part">Biocide tank</td><td>5–10 L food-grade HDPE tank + level sensor</td><td>Onboard disinfectant reservoir for autonomous fogging runs; level sensor triggers refill alerts.</td><td>Gravity/pump feed to the nozzles; float or capacitive sensor reports remaining volume.</td></tr>
-          <tr><td class="part">Nebuliser pump + nozzles</td><td>Diaphragm/peristaltic pump + fine-mist (fogging) nozzles</td><td>Lays down an even micro-droplet fog of biocide across litter and surfaces without soaking them.</td><td>Pump pressurises the liquid; nozzles atomise it into fine droplets that settle uniformly.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <!-- 4 PERCEPTION -->
-    <div class="subsys">
-      <span class="tag">4 · Perception & navigation</span>
-      <h3>Eyes for driving and for surveillance</h3>
-      <p class="desc">One sensor set does double duty: navigate safely around birds and equipment, and feed the AI models that detect dead birds, distribution and equipment faults.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">2D/3D LiDAR</td><td>RPLIDAR S2 / Livox Mid-360</td><td>Primary navigation sensor for SLAM mapping and reliable obstacle detection in low light and dust.</td><td>Fires laser pulses and times the reflections to measure distance in every direction &rarr; a live 2D/3D map.</td></tr>
-          <tr><td class="part">Depth (stereo) camera</td><td>Intel RealSense D435 / Luxonis OAK-D</td><td>3-D obstacle avoidance plus per-pixel depth for spotting birds, wet spots and objects on the floor.</td><td>Two offset lenses compute disparity between images to derive distance for each pixel.</td></tr>
-          <tr><td class="part">RGB camera</td><td>Global-shutter 1080p+ module</td><td>Feeds vision AI: dead-bird detection, bird distribution, drinker/feeder faults, litter condition.</td><td>CMOS sensor captures colour frames; global shutter avoids motion blur while driving.</td></tr>
-          <tr><td class="part">Thermal camera</td><td>FLIR Lepton 3.5 module</td><td>Works in darkness; heat signatures help flag sick/dead birds and hot/cold micro-zones.</td><td>A microbolometer array measures infrared radiation and maps it to a temperature image.</td></tr>
-          <tr><td class="part">Proximity + bumpers</td><td>ToF/ultrasonic ring + contact bumper switches</td><td>Last line of collision safety against birds, walls and equipment if vision/LiDAR miss something.</td><td>ToF/ultrasonic measure short-range distance; bumpers cut drive on physical contact.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <!-- 5 ENVIRONMENT -->
-    <div class="subsys">
-      <span class="tag">5 · Environmental sensing</span>
-      <h3>Mapping the air the birds breathe</h3>
-      <p class="desc">Because the robot is on the floor, these readings are taken exactly where the birds live — far more meaningful than fixed ceiling sensors, especially for ammonia which pools low.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">Ammonia (NH3) sensor</td><td>Electrochemical NH3 cell (0–100 ppm)</td><td>NH3 is the #1 air-quality killer of growth and welfare; must be mapped at bird height.</td><td>Ammonia reacts at an electrode producing a current proportional to concentration.</td></tr>
-          <tr><td class="part">CO2 sensor</td><td>NDIR CO2 module (e.g. SenseAir)</td><td>Tells you whether ventilation is adequate; rising CO2 = under-ventilation.</td><td>Measures how much infrared light CO2 molecules absorb at their characteristic band.</td></tr>
-          <tr><td class="part">Temp + humidity</td><td>Sensirion SHT31/SHT45</td><td>Thermal comfort drives FCR; humidity predicts litter caking and ammonia release.</td><td>Capacitive/bandgap elements change with heat and moisture; digitised to °C and %RH.</td></tr>
-          <tr><td class="part">Dust / PM sensor</td><td>Laser scattering PM sensor (e.g. SPS30)</td><td>Airborne dust is a respiratory hazard to birds and workers and clogs equipment.</td><td>A laser illuminates passing particles; scattered light is counted to estimate mass/count.</td></tr>
-          <tr><td class="part">Litter moisture probe</td><td>Capacitive prong probe (rear-mounted)</td><td>Wet litter is the root cause of ammonia, caking and footpad burn — measure it directly.</td><td>Water changes the dielectric between the prongs; capacitance maps to % moisture.</td></tr>
-          <tr><td class="part">Light + mic array</td><td>Ambient lux sensor + MEMS microphone array</td><td>Verify the lighting program; audio AI detects respiratory rales, sneezing and stress calls.</td><td>Photodiode measures lux; multiple mics capture sound for ML classification + direction.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <!-- 6 COMPUTE -->
-    <div class="subsys">
-      <span class="tag">6 · Compute & control</span>
-      <h3>Two brains: smart and safe</h3>
-      <p class="desc">A GPU computer for heavy AI and mapping; a deterministic microcontroller for the fast safety loop. Splitting them keeps motion control reliable even while AI is busy.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">Edge-AI computer</td><td>NVIDIA Jetson Orin Nano / NX</td><td>Runs vision + audio neural nets and SLAM on-board, so decisions do not depend on the network.</td><td>Its GPU runs many neural-network operations in parallel for real-time inference.</td></tr>
-          <tr><td class="part">Real-time MCU</td><td>STM32F4/F7 or Teensy 4.1</td><td>Owns motor, scarifier, pump and E-stop timing with guaranteed millisecond response.</td><td>Runs a fixed control loop reading sensors and driving outputs deterministically.</td></tr>
-          <tr><td class="part">Internal bus</td><td>CAN bus + USB3 + UART</td><td>Reliable wiring between compute, MCU and sensors in an electrically noisy shed.</td><td>CAN carries robust differential messages; USB3 handles camera/LiDAR bandwidth.</td></tr>
-          <tr><td class="part">Storage</td><td>NVMe SSD (256 GB+)</td><td>Buffers video, maps and logs when the network is down; holds the AI models.</td><td>Solid-state flash stores data locally; syncs to cloud when connected.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <!-- 7 POWER -->
-    <div class="subsys">
-      <span class="tag">7 · Power system</span>
-      <h3>Safe energy, all shift</h3>
-      <p class="desc">LiFePO4 chemistry is chosen for safety and cycle life. A BMS protects the pack; DC-DC converters supply clean logic/sensor rails; an E-stop cuts motor power instantly.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">Battery pack</td><td>24V LiFePO4, 20–40 Ah</td><td>High current for motors, hundreds of cycles, and far safer (no thermal runaway) than Li-ion in a barn.</td><td>Stores energy in lithium-iron-phosphate cells and delivers it as stable DC.</td></tr>
-          <tr><td class="part">BMS</td><td>4S/8S battery management system</td><td>Prevents over/under-charge, over-current and over-temp; balances cells for long life &amp; safety.</td><td>Monitors each cell and opens a protection MOSFET if any limit is exceeded.</td></tr>
-          <tr><td class="part">DC-DC converters</td><td>24V&rarr;12V and 24V&rarr;5V buck modules</td><td>Sensors and logic need clean, correct voltages the raw pack cannot provide.</td><td>Switch-mode regulation steps the bus voltage down efficiently to each rail.</td></tr>
-          <tr><td class="part">Charging dock</td><td>Auto-dock with sprung contact pads</td><td>Enables unattended 24/7 operation — the robot recharges itself between passes.</td><td>The bot homes to the dock; contacts mate and the charger tops up the pack via the BMS.</td></tr>
-          <tr><td class="part">E-stop + contactor</td><td>Mushroom E-stop + main power contactor</td><td>Instant, hardware-level power cut for human and bird safety.</td><td>Pressing the button physically breaks the motor-power circuit independent of software.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <!-- 8 COMMS -->
-    <div class="subsys">
-      <span class="tag">8 · Connectivity</span>
-      <h3>Getting data off the robot</h3>
-      <p class="desc">Telemetry, alerts and dashboards need a link out. WiFi covers the shed; optional cellular covers remote farms.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">WiFi module</td><td>Dual-band 802.11ac (on Jetson or USB)</td><td>Primary link to upload readings and receive commands within the house.</td><td>Radio transceiver exchanges data packets with the farm access point.</td></tr>
-          <tr><td class="part">4G/LTE modem</td><td>Quectel EG25-G (optional)</td><td>Backup/remote link so alerts reach the farmer even without on-site WiFi.</td><td>Connects to the cellular network to send/receive data over the internet.</td></tr>
-          <tr><td class="part">Antennas</td><td>External WiFi + LTE antennas</td><td>Metal-clad sheds block RF; external antennas keep the link reliable.</td><td>Convert electrical signals to radio waves and back for range.</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <!-- 9 SAFETY -->
-    <div class="subsys">
-      <span class="tag">9 · Safety & docking</span>
-      <h3>Bird-safe, human-safe, biosecure</h3>
-      <p class="desc">A robot working among live animals and people must slow or stop reliably, return home on its own, and never become a disease vector.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
-        <tbody>
-          <tr><td class="part">Human/animal detect</td><td>Vision person-detection + PIR</td><td>Collaborative-safety requirement: slow or stop near people and dense birds to avoid stress/injury.</td><td>Detects a person/bird in the path and commands the MCU into a safe-speed or stop state.</td></tr>
-          <tr><td class="part">Dock homing beacon</td><td>IR beacon or ArUco marker on the dock</td><td>Precise final approach so contacts mate every time for reliable recharge.</td><td>The bot's sensor/camera locks onto the beacon/marker and aligns to it.</td></tr>
-          <tr><td class="part">Status beacon + buzzer</td><td>RGB tower light + piezo buzzer</td><td>Tells staff what the robot is doing and warns birds/people before moving.</td><td>Colour/sound patterns signal running, docking, fault or E-stop states.</td></tr>
-          <tr><td class="part">Wheel wash / UV dock</td><td>Disinfectant tray or UV-C in the dock</td><td>Biosecurity: stop the robot spreading pathogens; one robot stays in one house.</td><td>Wheels/tools are cleaned at the dock between passes to lower cross-contamination.</td></tr>
-        </tbody>
-      </table></div>
+  <section class="preface">
+    <div class="preface-in">
+      <h2>How to read this book</h2>
+      <p>This is not a parts list — it is a ladder. <b>Level 1 is the foundation:</b> the plain biological and physical facts of a poultry house, and every foundational <i>why</i> that follows from them. Each level after that climbs one rung higher, and <b>every level assumes you understood the one below it.</b> By the time you reach the machine (Part IV onward), you will already know <i>why</i> each component has to exist — because the foundation demanded it.</p>
+      <div class="how">
+        <div class="c"><b>Foundation first</b><span>Levels 1–10 explain the "why" before any hardware appears.</span></div>
+        <div class="c"><b>Each level builds up</b><span>A blue "Builds on" note links every chapter to its roots.</span></div>
+        <div class="c"><b>Why → How</b><span>Every component is justified before it is explained.</span></div>
+        <div class="c"><b>Friendly diagrams</b><span>Each big idea has a clear, labelled picture.</span></div>
+      </div>
     </div>
   </section>
 
-  <section id="power">
-    <h2><span class="num">04</span>Power distribution</h2>
-    <p class="lead">One protected path from pack to loads. The E-stop/contactor sits between protection and the motor bus so motors can be killed without touching logic power.</p>
-    <div class="diagram">
-      <pre class="mermaid">
+  <main class="container">
+    <div class="part-divider" id="part1">
+      <div class="pt">Part I</div>
+      <h2>Foundations — the Why</h2>
+      <p>Before a single bolt, we establish the ground truth of a poultry house: the biology, the chemistry, and the economics that make cleaning and watching non-negotiable. Everything the robot does later is an answer to a problem defined here.</p>
+      <div class="range">Levels 1–10</div>
+    </div>
+
+    <article class="chapter" id="l1">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>1</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>The bird and the barn</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> A modern broiler house is not a field — it is a tightly controlled box holding tens of thousands of fast-growing birds in a shared airspace. Understand that box and every later decision follows.</div>
+      <p>A broiler is a meat chicken bred to grow from a ~40 g chick to a ~2.5 kg bird in about six weeks. To make that economical, thousands are raised together on a littered floor inside a climate-controlled shed. The birds share the same air, the same water lines, the same floor, and the same droppings.</p>
+      <p>This shared environment is the single most important fact in the whole book. Because the birds cannot leave it and cannot clean it, <b>the quality of that box is the quality of their life and the farm's profit.</b> Two things silently degrade the box every hour: the birds foul the floor, and problems (a sickness, a leak, a dead bird) go unseen. The rest of Part I explains why each of those matters so much.</p>
+      <div class="builds"><b>Builds on</b> → nothing. This is the ground floor.</div>
+    </article>
+
+    <article class="chapter" id="l2">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>2</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>Why density creates fragility</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> In a dense flock there is no such thing as a small problem. Anything bad multiplies through the whole population before a human would normally notice.</div>
+      <p>Put 20,000 birds in one airspace and every risk gains a multiplier. One sick bird breathes on hundreds. One leaking drinker wets a patch that gasses the whole end of the shed with ammonia. One dead bird becomes a disease seed the others peck at. Density turns a minor, local event into a flock-wide event with terrifying speed.</p>
+      <p>This is <b>why the farm runs on prevention and early action, not repair.</b> By the time damage is obvious, it is already large. The entire justification for constant cleaning and constant watching is this cascade — stop the small thing before density amplifies it.</p>
+      <div class="fig">
+        <pre class="mermaid">
 flowchart LR
-  DOCK["Charging dock"] --> CHG["Onboard charger"]
-  CHG --> BMS["BMS + protection"]
-  BAT["LiFePO4 24V pack"] --> BMS
-  BMS --> ESTOP["E-stop / contactor"]
-  ESTOP --> BUS["24V main bus"]
-  BUS --> MD["Motor drivers → drive motors"]
-  BUS --> SC["Scarifier motor"]
+  A["One small event<br/>(leak · sick bird · wet spot)"] --> B["Shared air, water &amp; floor<br/>spread it"]
+  B --> C["Hundreds affected<br/>within hours"]
+  C --> D["Flock-wide loss<br/>(mortality · poor growth)"]
+        </pre>
+        <div class="cap"><b>Figure 2.1</b> — The amplification cascade: density converts a local problem into a whole-flock problem.</div>
+      </div>
+      <div class="builds"><b>Builds on</b> → Level 1 (the shared box).</div>
+    </article>
+
+    <article class="chapter" id="l3">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>3</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>Why litter exists</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> The floor is covered in "litter" — a bed of dry material — on purpose. It is the farm's first and cheapest health technology.</div>
+      <p>Litter is a layer of absorbent bedding (wood shavings, chopped straw, rice hulls, or sawdust) spread across the floor. It does three jobs at once: it <b>absorbs moisture</b> from droppings and spilled water, it <b>insulates</b> the birds from the cold slab, and it gives them a natural surface to scratch and dust-bathe on (a welfare need).</p>
+      <p>But litter is a sponge, and a sponge only helps while it stays dry and loose. A fresh, friable bed protects the flock; a wet, compacted bed becomes the source of nearly every problem in the next four chapters. So litter is not just "the floor" — it is an active system that must be <i>maintained</i>. That maintenance is half of what the robot exists to do.</p>
+      <div class="builds"><b>Builds on</b> → Levels 1–2 (birds foul the shared floor).</div>
+    </article>
+
+    <article class="chapter" id="l4">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>4</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>Why moisture is the root enemy</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> Almost every serious litter problem traces back to one variable: water. Control moisture and you pre-empt ammonia, caking, pathogens and footpad disease at once.</div>
+      <p>Healthy litter sits at roughly 25–35% moisture — damp enough to bind dust, dry enough to stay loose. Push it wetter (from droppings, humid air, or a leaking drinker) and three things happen: the bed compresses into hard "cake," it stops absorbing, and it becomes a chemical and biological reactor.</p>
+      <p>This is the pivot of the entire foundation. <b>Moisture is upstream of ammonia (Level 5), of pathogens (Level 7), and of footpad burn (Level 6).</b> A robot that keeps litter dry is not doing one job — it is switching off the source of several problems simultaneously. Remember this when we reach the scarifier in Part V: aeration is really moisture management.</p>
+      <div class="builds"><b>Builds on</b> → Level 3 (litter only works while dry).</div>
+    </article>
+
+    <article class="chapter" id="l5">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>5</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>Why ammonia forms</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> Ammonia (NH₃) is the poultry house's signature poison, and it is a direct product of wet litter. Knowing the recipe tells you exactly how to prevent it.</div>
+      <p>Bird droppings are rich in nitrogen (uric acid and undigested protein). When litter is <b>wet and warm</b>, naturally present bacteria produce an enzyme called <b>urease</b> that breaks that nitrogen down — and one product is ammonia gas, which rises off the floor into the birds' breathing zone.</p>
+      <p>The recipe is the cure: NH₃ needs nitrogen + moisture + warmth + microbes. You cannot remove the droppings or the warmth, but you <i>can</i> remove the moisture. Dry the litter and the reaction slows dramatically. This is precisely why aeration (turning the bed so water evaporates) is the number-one cleaning function.</p>
+      <div class="fig">
+        <div class="svg-wrap">
+        <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How ammonia forms from wet litter">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f9fb"/><stop offset="1" stop-color="#eafaf7"/></linearGradient>
+          </defs>
+          <rect x="0" y="0" width="760" height="300" fill="url(#sky)" rx="12"/>
+          <!-- inputs -->
+          <g font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+            <rect x="24" y="60" width="150" height="58" rx="10" fill="#fff" stroke="#b98a5a" stroke-width="1.6"/>
+            <text x="99" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#7a5a33">Droppings</text>
+            <text x="99" y="102" text-anchor="middle" font-size="11" fill="#8a6b45">nitrogen · protein</text>
+            <text x="192" y="94" text-anchor="middle" font-size="24" fill="#5c6b7a">+</text>
+            <rect x="212" y="60" width="132" height="58" rx="10" fill="#fff" stroke="#2a86c9" stroke-width="1.6"/>
+            <text x="278" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#1c5e91">Moisture</text>
+            <text x="278" y="102" text-anchor="middle" font-size="11" fill="#3a7cb0">wet litter</text>
+            <text x="362" y="94" text-anchor="middle" font-size="24" fill="#5c6b7a">+</text>
+            <rect x="382" y="60" width="176" height="58" rx="10" fill="#fff" stroke="#c2603a" stroke-width="1.6"/>
+            <text x="470" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#8f3f22">Warmth + microbes</text>
+            <text x="470" y="102" text-anchor="middle" font-size="11" fill="#a5583a">urease enzyme</text>
+          </g>
+          <!-- litter band -->
+          <rect x="24" y="196" width="712" height="70" rx="12" fill="#d9b98a" stroke="#b98a5a" stroke-width="1.5"/>
+          <text x="380" y="236" text-anchor="middle" font-size="13" font-weight="700" fill="#6f5230" font-family="-apple-system,Segoe UI,Roboto,sans-serif">WET LITTER = a chemical reactor</text>
+          <!-- arrow down into litter -->
+          <path d="M380 124 L380 190" stroke="#5c6b7a" stroke-width="2" marker-end="url(#ah)"/>
+          <!-- NH3 rising -->
+          <g stroke="#12805c" stroke-width="2" fill="none">
+            <path d="M600 196 C 600 168, 620 168, 620 140" marker-end="url(#ah2)"/>
+            <path d="M648 196 C 648 172, 668 172, 668 150" marker-end="url(#ah2)"/>
+            <path d="M672 196 C 672 164, 692 164, 692 138" marker-end="url(#ah2)"/>
+          </g>
+          <text x="648" y="128" text-anchor="middle" font-size="15" font-weight="800" fill="#0b5c43" font-family="-apple-system,Segoe UI,Roboto,sans-serif">NH₃ ↑</text>
+          <text x="648" y="176" text-anchor="middle" font-size="11" fill="#0b5c43" font-family="-apple-system,Segoe UI,Roboto,sans-serif">ammonia gas</text>
+          <defs>
+            <marker id="ah" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0 0 L8 5 L0 10 z" fill="#5c6b7a"/></marker>
+            <marker id="ah2" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0 0 L8 5 L0 10 z" fill="#12805c"/></marker>
+          </defs>
+        </svg>
+        </div>
+        <div class="cap"><b>Figure 5.1</b> — Ammonia's recipe. Remove the one input you can control — <b>moisture</b> — and the reaction slows.</div>
+      </div>
+      <div class="builds"><b>Builds on</b> → Level 4 (moisture is the root enemy).</div>
+    </article>
+
+    <article class="chapter" id="l6">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>6</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>Why ammonia &amp; dust harm birds</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> Ammonia and airborne dust are not just unpleasant — they measurably cut growth, damage the birds, and cost money. This is what makes air quality a hard target.</div>
+      <p>Ammonia above ~20–25 ppm burns the eyes and scorches the lining of the respiratory tract, leaving birds open to infection, eating less, and growing slower — a direct hit to <b>feed conversion ratio (FCR)</b>, the master efficiency number of the farm. Sit birds on wet, caustic litter and they also develop <b>footpad dermatitis and hock burn</b>: painful lesions that hurt welfare and downgrade the carcass at slaughter.</p>
+      <p>Dust adds a parallel injury. Fine particles of dried droppings, feather and feed carry pathogens deep into the lungs and irritate the airways of birds <i>and</i> workers. So "air quality" is really two linked enemies — gas and particulate — and both are worsened by the same wet, disturbed, poorly ventilated litter.</p>
+      <div class="builds"><b>Builds on</b> → Level 5 (ammonia) and Level 4 (moisture/dust).</div>
+    </article>
+
+    <article class="chapter" id="l7">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>7</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>Why pathogens thrive</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> The same warm, moist, nutrient-rich litter that makes ammonia is a perfect incubator for disease — and disease in poultry runs in a self-feeding loop.</div>
+      <p>Bacteria (E. coli, Salmonella, Staphylococcus), coccidia parasites and viruses survive and multiply in damp litter and in the sticky "biofilm" that coats surfaces. Birds peck and scratch the floor constantly, so they ingest what is there, get infected, and shed even more pathogen back into the litter. Left alone, the pathogen load climbs with every cycle.</p>
+      <p>This loop is <b>why disinfection exists</b> and why houses get a deep clean-out between flocks: you must periodically break the cycle, or each new flock inherits a dirtier, more dangerous house than the last. It is also why avian-influenza precautions focus on manure and litter — the virus persists there for a long time.</p>
+      <div class="fig">
+        <pre class="mermaid">
+flowchart LR
+  L["Warm, moist litter<br/>+ biofilm"] --> I["Birds peck &amp; ingest<br/>pathogens"]
+  I --> S["Infected birds<br/>shed more"]
+  S --> L
+  L --> R["Rising pathogen load<br/>every day"]
+        </pre>
+        <div class="cap"><b>Figure 7.1</b> — The self-feeding disease loop. Cleaning &amp; disinfection exist to cut this circle.</div>
+      </div>
+      <div class="builds"><b>Builds on</b> → Levels 4–5 (moist, warm litter).</div>
+    </article>
+
+    <article class="chapter" id="l8">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>8</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>Why dead birds are dangerous</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> A dead bird is not a passive loss — it is an active hazard that must be removed fast. This single fact justifies a whole surveillance function later.</div>
+      <p>In any large flock some birds die daily; that is normal. The danger is leaving them. A carcass is a concentrated reservoir of whatever killed it, and it decays into the shared litter — feeding the disease loop from Level 7. Worse, live birds are naturally drawn to peck at a carcass, which spreads infection directly and can trigger <b>cannibalistic pecking</b> among the flock.</p>
+      <p>Mortality is also the farm's most important daily number. A sudden rise (industry practice flags anything over ~0.3% of the house in 24 hours) is the earliest hard signal of an outbreak. So dead-bird removal serves two masters: it stops a hazard, and it produces the data that everything else reacts to.</p>
+      <div class="builds"><b>Builds on</b> → Levels 2 &amp; 7 (amplification + disease loop).</div>
+    </article>
+
+    <article class="chapter" id="l9">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>9</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>Why early detection wins</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> Because problems amplify (Level 2), the value of information collapses with time. Catching a problem on day 1 instead of day 3 is the difference between an adjustment and a disaster.</div>
+      <p>Everything degrades on a curve: a disease front, an ammonia spike, a failing fan, a blocked water line. Detected early, each is a cheap correction. Detected late, each is a mass event. This is the economic engine behind surveillance — <b>the earlier the signal, the smaller the loss.</b></p>
+      <p>The catch is that humans can only sample. A stockperson walks the house perhaps two or three times a day, taking snapshots. Between snapshots, the shed is unwatched. The gap between "how often problems start" and "how often we look" is exactly the opening a machine can close by watching continuously — the core case for the surveillance robot.</p>
+      <div class="builds"><b>Builds on</b> → Level 2 (amplification makes time expensive).</div>
+    </article>
+
+    <article class="chapter" id="l10">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>10</b></span>
+        <div><p class="ck">Part I · Foundations</p><h3>The two master jobs</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> Everything in Levels 1–9 collapses into two continuous jobs. The whole robot is an attempt to do these two jobs better than a human can.</div>
+      <p>Reduce the foundation to its essence and only two duties remain, both feeding the one master goal — <b>keep the pathogen load low and catch problems early</b>:</p>
+      <p><b>1. Clean</b> — control the <i>environment</i>: keep litter dry and aerated (Levels 4–5), keep the pathogen load down through disinfection (Level 7), and keep the air breathable (Level 6).<br/>
+      <b>2. Watch</b> — control the <i>information</i>: find dead and sick birds (Levels 8–9), and measure the air, litter and equipment continuously so problems surface on day one.</p>
+      <p>Hold onto this. Every component from Part IV onward exists to serve one of these two jobs. If a part cannot be traced back to "clean" or "watch," it does not belong on the robot.</p>
+      <div class="builds"><b>Builds on</b> → all of Part I. <b>Sets up</b> → Part II (how humans do these jobs today).</div>
+    </article>
+    <div class="part-divider" id="part2">
+      <div class="pt">Part II</div>
+      <h2>The Human Labor</h2>
+      <p>Before automating a job you must understand it. Here we walk the two master jobs as they are actually done today — by hand — and, crucially, why each task is done the way it is. The limits we find at the end are the reason a robot is worth building.</p>
+      <div class="range">Levels 11–16</div>
+    </div>
+
+    <article class="chapter" id="l11">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>11</b></span>
+        <div><p class="ck">Part II · Human labor</p><h3>The stockperson's day</h3></div></div>
+      <p>The person who runs the birds — the <b>stockperson</b> — is the current implementation of "clean" and "watch." A typical day is a rhythm of walk-throughs: an early round to check overnight losses and set feed/water, mid-day and evening rounds to inspect birds and conditions, plus reactive tasks (fixing a leak, treating a sick pen) and constant record-keeping.</p>
+      <div class="why"><span class="k">Why it's done this way</span> The walk-through is the cheapest tool that combines all human senses at once — sight, sound, smell, touch — to judge a flock. A good stockperson can "read" a house in minutes. That richness is the bar the robot must eventually meet or exceed.</div>
+      <p>The chapters that follow break this day into its component tasks. For each we ask the same two questions the whole book turns on: <i>what</i> is done, and <i>why</i>.</p>
+      <div class="builds"><b>Builds on</b> → Level 10 (clean &amp; watch). <b>Sets up</b> → Levels 12–15 (the tasks).</div>
+    </article>
+
+    <article class="chapter" id="l12">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>12</b></span>
+        <div><p class="ck">Part II · Human labor</p><h3>Manual litter management</h3></div></div>
+      <p><b>What:</b> Workers rake, hoe, or till the bedding to break up compacted "cake," especially wet patches around drinkers and feed lines. Between flocks, a de-caking machine or loader strips out the worst material.</p>
+      <div class="why"><span class="k">Why it's done</span> To keep litter dry and loose — which, from Levels 4–6, is what suppresses ammonia, footpad disease, dust and pathogens. Turning the bed exposes wet material to the air so moisture evaporates before it can gas off as NH₃.</div>
+      <p>Note what this task really <i>is</i>: it is moisture management dressed up as raking. The tool (a rake) is incidental; the goal is aeration and drying. When we build the scarifier in Level 29, we are automating this exact intent — not the rake, but the drying.</p>
+      <div class="builds"><b>Builds on</b> → Levels 4–5. <b>Automated by</b> → Level 29 (scarifier).</div>
+    </article>
+
+    <article class="chapter" id="l13">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>13</b></span>
+        <div><p class="ck">Part II · Human labor</p><h3>Manual cleaning &amp; disinfection</h3></div></div>
+      <p><b>What:</b> Mostly during the empty "downtime" between flocks: remove all old litter and manure, dry-clean surfaces, wash with detergent and water, then spray, fog or fumigate disinfectant across every surface. Some farms also mist lightly while birds are present.</p>
+      <div class="why"><span class="k">Why it's done</span> To break the disease loop (Level 7). Removing organic matter first is essential because dirt shields microbes from disinfectant; the chemical step then kills the surviving pathogens, cutting the load the next flock inherits and reducing the need for antibiotics.</div>
+      <p>This is a hazardous, unpleasant job: workers are exposed to dust, ammonia and biocide in a confined space. That human cost is one more reason to hand it to a machine — the robot's nebuliser (Levels 31–32) automates the fogging step, and it can work the empty house overnight.</p>
+      <div class="builds"><b>Builds on</b> → Level 7. <b>Automated by</b> → Levels 31–32 (biocide system).</div>
+    </article>
+
+    <article class="chapter" id="l14">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>14</b></span>
+        <div><p class="ck">Part II · Human labor</p><h3>Manual health &amp; mortality checks</h3></div></div>
+      <p><b>What:</b> On every round the stockperson removes dead birds, spots sick/lame/weak ones (isolating or humanely culling them), and reads the flock's body language — how birds are spread out, whether they are feeding, resting, huddling or panting.</p>
+      <div class="why"><span class="k">Why it's done</span> Dead birds are hazards and the key mortality signal (Level 8); early identification of the sick prevents an outbreak (Level 9). Bird <i>distribution</i> is a live thermometer: huddling means cold, edge-avoidance or panting means something is wrong.</div>
+      <p>This task is pure information-gathering, and it is exactly where continuous machine watching beats human sampling. A camera that never blinks can count mortality, map distribution, and flag a limping bird at 3 a.m. — the origin of the perception stack in Part VI.</p>
+      <div class="builds"><b>Builds on</b> → Levels 8–9. <b>Automated by</b> → Part VI (perception).</div>
+    </article>
+
+    <article class="chapter" id="l15">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>15</b></span>
+        <div><p class="ck">Part II · Human labor</p><h3>Manual environment &amp; equipment checks</h3></div></div>
+      <p><b>What:</b> The worker reads thermometers and sensors, "feels" the air for heat and ammonia, checks that fans and inlets are working, and walks the lines looking for empty feeders and blocked or leaking nipple drinkers.</p>
+      <div class="why"><span class="k">Why it's done</span> Climate and air quality drive FCR and mortality (Level 6); a blocked feed line starves birds; and — closing a loop from Level 4 — a <b>leaking drinker is the number-one cause of the wet litter</b> that starts the whole ammonia/pathogen chain. Fixing the leak treats the cause, not just the symptom.</div>
+      <p>Fixed sensors help but only measure a few points. A human samples the rest by walking. A moving robot can map temperature, ammonia and moisture <i>everywhere the birds live</i> and spot the dripping nipple that a fixed sensor never sees (Part VII).</p>
+      <div class="builds"><b>Builds on</b> → Levels 4 &amp; 6. <b>Automated by</b> → Part VII (environmental sensing).</div>
+    </article>
+
+    <article class="chapter" id="l16">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>16</b></span>
+        <div><p class="ck">Part II · Human labor</p><h3>Why manual labor can't scale</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> The human method has four structural limits. Each one is a specification for the robot — a gap the machine is designed to fill.</div>
+      <p><b>1. It samples, it doesn't watch.</b> Two or three rounds a day leave the house unobserved for hours, while problems start continuously (Level 9).<br/>
+      <b>2. It's dangerous.</b> Dust, ammonia and biocide make cleaning a genuine health hazard for workers (Level 13).<br/>
+      <b>3. It doesn't measure precisely.</b> "The air feels bad" is not a number; humans can't quantify ammonia or moisture across a whole house by hand.<br/>
+      <b>4. It's labor-scarce and inconsistent.</b> Skilled stockpeople are hard to find, and quality varies by person, fatigue and time of day.</p>
+      <p>Read those four limits as a design brief: build a machine that watches <i>continuously</i>, works <i>where humans shouldn't</i>, <i>measures</i> instead of guessing, and does it <i>consistently</i>. That brief is the rest of the book.</p>
+      <div class="builds"><b>Builds on</b> → all of Part II. <b>Sets up</b> → Part III (turning the brief into functions).</div>
+    </article>
+
+    <div class="part-divider" id="part3">
+      <div class="pt">Part III</div>
+      <h2>From Labor to Function</h2>
+      <p>We now convert human tasks into machine functions using one disciplined rule, and choose the body shape that can carry them. This is the hinge of the book: foundations and labor on one side, hardware on the other.</p>
+      <div class="range">Levels 17–20</div>
+    </div>
+
+    <article class="chapter" id="l17">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>17</b></span>
+        <div><p class="ck">Part III · Labor → function</p><h3>The translation principle</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> Never automate a tool — automate the <i>reason the tool exists</i>. A robot that copies a rake is dumb; a robot that satisfies "keep litter dry" is smart.</div>
+      <p>The whole design method is one chain: for each manual task, name <b>what</b> is done, dig to <b>why</b> it is done, then design the <b>function</b> that satisfies that why — often by a completely different mechanism than the human uses.</p>
+      <div class="fig">
+        <pre class="mermaid">
+flowchart LR
+  T["TASK<br/>what a human does"] --> W["WHY<br/>the real purpose"]
+  W --> F["FUNCTION<br/>how the robot satisfies the why"]
+  F --> E["EFFICIENCY<br/>done better: 24/7, measured, safe"]
+        </pre>
+        <div class="cap"><b>Figure 17.1</b> — The translation principle applied to every function in Parts V–VII.</div>
+      </div>
+      <p>Example: the task "rake wet patches" → the why "keep litter dry to stop ammonia" → the function "a continuous scarifier that aerates as it drives." Same purpose, better mechanism.</p>
+      <div class="builds"><b>Builds on</b> → all of Parts I–II.</div>
+    </article>
+
+    <article class="chapter" id="l18">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>18</b></span>
+        <div><p class="ck">Part III · Labor → function</p><h3>The cleaning function set</h3></div></div>
+      <p>Apply the principle to every cleaning task from Part II and a short, precise list of machine functions falls out:</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Task (why)</th><th>Robot function</th></tr></thead>
+        <tbody>
+          <tr><td><span class="p">Rake/till litter</span> — keep it dry, cut NH₃</td><td>Continuous litter scarifier (L29)</td></tr>
+          <tr><td><span class="p">Clear wet cake</span> — kill local NH₃/pathogen source</td><td>Wet-spot detection + intensive local aeration (L29, L42)</td></tr>
+          <tr><td><span class="p">Disinfect surfaces</span> — break the disease loop</td><td>Biocide tank + nebuliser fogging (L31–32)</td></tr>
+          <tr><td><span class="p">Control dust</span> — protect airways</td><td>Gentle motion + mist knockdown + PM mapping (L32, L41)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Notice the list is short. Good automation resists the urge to add features — every function here traces cleanly to a foundational why. That discipline is what keeps the machine buildable.</p>
+      <div class="builds"><b>Builds on</b> → Levels 12–13, 17. <b>Delivered by</b> → Parts V &amp; VII.</div>
+    </article>
+
+    <article class="chapter" id="l19">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>19</b></span>
+        <div><p class="ck">Part III · Labor → function</p><h3>The surveillance function set</h3></div></div>
+      <p>The same translation applied to the "watch" tasks yields the sensing and intelligence functions:</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Task (why)</th><th>Robot function</th></tr></thead>
+        <tbody>
+          <tr><td><span class="p">Remove dead birds</span> — hazard + mortality signal</td><td>Vision dead-bird detection + count (L37, L44)</td></tr>
+          <tr><td><span class="p">Spot sick/lame birds</span> — stop outbreaks</td><td>Gait/posture AI + audio health AI (L37, L42, L44)</td></tr>
+          <tr><td><span class="p">Read distribution</span> — comfort thermometer</td><td>Camera heatmaps of where birds cluster (L37)</td></tr>
+          <tr><td><span class="p">Check air &amp; climate</span> — FCR, welfare</td><td>Mobile gas + climate mapping (L40–41)</td></tr>
+          <tr><td><span class="p">Check equipment</span> — leaks cause wet litter</td><td>Vision drinker/feeder-fault detection (L37)</td></tr>
+          <tr><td><span class="p">Keep records</span> — trends &amp; compliance</td><td>Automated telemetry to a dashboard (L44, L48)</td></tr>
+        </tbody>
+      </table></div>
+      <div class="builds"><b>Builds on</b> → Levels 14–15, 17. <b>Delivered by</b> → Parts VI–VIII.</div>
+    </article>
+
+    <article class="chapter" id="l20">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>20</b></span>
+        <div><p class="ck">Part III · Labor → function</p><h3>Why a ground robot (the Octopus model)</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> The function sets decide the body. Because the cleaning functions must <i>touch the litter</i>, the machine must live on the floor — a ground robot, like the Octopus Biosafety design from France.</div>
+      <p>A ceiling-rail robot can watch beautifully, but it cannot aerate litter, cannot fog disinfectant into corners, and cannot reach a carcass — it has no hands on the floor. Since half our mandate is <b>cleaning</b> (Level 10), the platform must be a self-propelled ground vehicle that drives across the bed, carrying both the cleaning payload and the sensors.</p>
+      <p>That is the Octopus model we adopt: a low, all-terrain, self-recharging ground robot that scarifies litter and nebulises biocide while continuously mapping the barn — extended in this book with a full AI perception stack. Everything from Part IV on is the anatomy of that machine, built from the wheels up.</p>
+      <div class="builds"><b>Builds on</b> → Levels 18–19 (functions demand floor contact). <b>Sets up</b> → Part IV (the body).</div>
+    </article>
+    <div class="part-divider" id="part4">
+      <div class="pt">Part IV</div>
+      <h2>Mechanics — the Body</h2>
+      <p>Now we build the machine that carries everything. A body that survives a poultry house, crosses deep litter, and moves with precise, bird-safe control. Every choice here is dictated by the foundations: dust, moisture, ammonia and loose bedding.</p>
+      <div class="range">Levels 21–28</div>
+    </div>
+
+    <article class="chapter" id="l21">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>21</b></span>
+        <div><p class="ck">Part IV · Mechanics</p><h3>The chassis: a frame for forces</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> Everything else bolts to the chassis. It must hold the wheels, battery, sensors and a digging scarifier in fixed alignment while absorbing the forces of driving and tilling.</div>
+      <p>The chassis is the skeleton — typically a welded frame of aluminium (light, corrosion-resistant) or stainless steel (tougher, fully washable). Its job is <b>rigidity</b>: when the scarifier drags through packed litter, that reaction force must flow through a stiff frame, not twist the body or shake the cameras out of alignment.</p>
+      <p>It also sets the geometry that later chapters depend on — a low centre of gravity for stability (Level 25), and a profile low enough to pass under feed and drinker lines. Get the frame right and every subsystem has a stable home; get it wrong and no amount of clever software compensates.</p>
+      <div class="builds"><b>Builds on</b> → Level 20 (a ground robot needs a body).</div>
+    </article>
+
+    <article class="chapter" id="l22">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>22</b></span>
+        <div><p class="ck">Part IV · Mechanics</p><h3>Sealing, corrosion &amp; washdown</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> The house is full of the three things electronics hate most — dust, moisture and ammonia — and the robot must be pressure-washed between flocks for biosecurity. The body must keep all of that out.</div>
+      <p>Electronics live inside a sealed enclosure rated to an <b>IP (Ingress Protection)</b> standard — IP65 or better, meaning dust-tight and able to survive water jets. Gasketed panels and sealed cable glands form a continuous barrier. Ammonia is corrosive over time, so exposed metals are stainless or coated, and connectors are chosen for chemical resistance.</p>
+      <div class="concept"><b>IP rating:</b> two digits — the first is protection against solids (6 = dust-tight), the second against liquids (5 = water jets, 6 = powerful jets, 7 = immersion). "IP65" = fully dust-tight and jet-proof.</div>
+      <p>A small filtered fan can hold slight positive pressure inside the case so that any gap leaks air <i>out</i> rather than letting dust in — a simple trick that greatly extends electronics life.</p>
+      <div class="builds"><b>Builds on</b> → Levels 4–6 (dust, moisture, ammonia) &amp; Level 7 (washdown/biosecurity).</div>
+    </article>
+
+    <article class="chapter" id="l23">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>23</b></span>
+        <div><p class="ck">Part IV · Mechanics</p><h3>Locomotion: wheels vs tracks</h3></div></div>
+      <div class="why"><span class="k">Why it matters</span> The robot must cross deep, loose, uneven litter without bogging down or churning it into dust — the choice of what touches the ground decides whether it can move at all.</div>
+      <p><b>Wheels</b> are simple, efficient and easy to seal — but small wheels sink into loose bedding. <b>Tracks</b> spread weight over a large area and climb obstacles well — but they trap litter, wear faster and cost more. For most broiler litter, large-diameter wheels with an aggressive tread are the pragmatic winner (the approach the Octopus-style robots use), reserving tracks for unusually deep or sloppy bedding.</p>
+      <p>The deciding factor is <b>ground pressure</b> — how hard the machine presses on the floor — which we quantify in the next level. Whatever the choice, low speed and gentle contact matter: the robot must move <i>through</i> the flock, not disturb it (Level 2's fragility).</p>
+      <div class="builds"><b>Builds on</b> → Level 3 (litter surface). <b>Sets up</b> → Level 24 (ground pressure).</div>
+    </article>
+
+    <article class="chapter" id="l24">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>24</b></span>
+        <div><p class="ck">Part IV · Mechanics</p><h3>Traction &amp; ground pressure</h3></div></div>
+      <div class="why"><span class="k">Why it matters</span> "Floating" on loose litter instead of digging in is a physics problem: spread the weight over enough contact area and the machine stays on top; concentrate it and it sinks.</div>
+      <p><b>Ground pressure = weight ÷ contact area.</b> A heavy robot on small wheels has high pressure and ploughs a rut; the same robot on large wheels (or tracks) spreads its weight and rides the surface. Large-diameter wheels also roll over lumps more easily and give a bigger tread contact patch for <b>traction</b> — the grip that turns motor torque into forward motion instead of wheelspin.</p>
+      <div class="fig">
+        <div class="svg-wrap">
+        <svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Small wheel sinks, large wheel floats on litter">
+          <rect x="0" y="0" width="720" height="240" rx="12" fill="#fbfdfc"/>
+          <!-- litter line both sides -->
+          <text x="180" y="34" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="800" fill="#b91c1c">Small wheel · high pressure</text>
+          <text x="540" y="34" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="800" fill="#0b5c43">Large wheel · low pressure</text>
+          <!-- left litter -->
+          <rect x="40" y="150" width="280" height="70" rx="8" fill="#e6cfa6"/>
+          <!-- rut -->
+          <path d="M150 150 q30 46 60 0" fill="#d9b98a"/>
+          <circle cx="180" cy="150" r="34" fill="#fff" stroke="#b91c1c" stroke-width="3"/>
+          <line x1="180" y1="150" x2="180" y2="112" stroke="#b91c1c" stroke-width="2"/>
+          <path d="M180 150 l0 30" stroke="#b91c1c" stroke-width="2" stroke-dasharray="3 3"/>
+          <text x="180" y="205" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#7a2f22">sinks &amp; ruts</text>
+          <!-- right litter -->
+          <rect x="400" y="150" width="280" height="70" rx="8" fill="#e6cfa6"/>
+          <circle cx="540" cy="132" r="52" fill="#fff" stroke="#0b5c43" stroke-width="3"/>
+          <line x1="540" y1="132" x2="540" y2="80" stroke="#0b5c43" stroke-width="2"/>
+          <text x="540" y="205" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#0b5c43">rides the surface</text>
+          <!-- contact patch markers -->
+          <rect x="168" y="150" width="24" height="5" fill="#b91c1c"/>
+          <rect x="512" y="182" width="56" height="5" fill="#0b5c43"/>
+        </svg>
+        </div>
+        <div class="cap"><b>Figure 24.1</b> — Same weight, different contact area. Bigger wheels = lower ground pressure = the robot floats instead of digging.</div>
+      </div>
+      <div class="builds"><b>Builds on</b> → Level 23.</div>
+    </article>
+
+    <article class="chapter" id="l25">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>25</b></span>
+        <div><p class="ck">Part IV · Mechanics</p><h3>Suspension &amp; stability</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> Litter is lumpy. Without suspension, a wheel that lifts over a bump loses traction, and every jolt blurs the cameras the surveillance job depends on.</div>
+      <p>A simple passive suspension — springs or a rocker linkage at each wheel — lets wheels move independently so all of them stay loaded and gripping on uneven ground. It also isolates the sensor mast from shocks, keeping LiDAR and camera data clean (Part VI needs steady images to detect a limping bird).</p>
+      <p>Stability comes from geometry: a wide wheelbase and a <b>low centre of gravity</b> (heavy battery mounted low and central — see Level 46) keep the robot from tipping when it turns or crosses a ridge of cake. Slow speeds help too; there is never a reason for this machine to move fast.</p>
+      <div class="builds"><b>Builds on</b> → Levels 23–24. <b>Serves</b> → Part VI (steady sensing).</div>
+    </article>
+
+    <article class="chapter" id="l26">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>26</b></span>
+        <div><p class="ck">Part IV · Mechanics</p><h3>Drive motors: torque &amp; gearing</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> The robot needs <i>force</i> at very low speed — to push through litter and drag a scarifier — not top speed. That specific need dictates the motor and, above all, the gearbox.</div>
+      <p>A <b>brushless DC (BLDC)</b> motor spins efficiently and lasts long (no brushes to wear), but a fast-spinning motor has little turning force on its own. A <b>gearbox</b> fixes that: it trades speed for <b>torque</b>. Gear a motor down 30:1 and the output turns 30× slower but with roughly 30× the force — exactly the "slow and strong" profile a litter-crawler needs.</p>
+      <div class="fig">
+        <div class="svg-wrap">
+        <svg viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gear reduction trades speed for torque">
+          <rect x="0" y="0" width="640" height="220" rx="12" fill="#fbfdfc"/>
+          <!-- small gear -->
+          <g transform="translate(180,110)">
+            <circle r="46" fill="#e8f6f0" stroke="#12805c" stroke-width="2"/>
+            <circle r="8" fill="#12805c"/>
+            <g stroke="#12805c" stroke-width="8">
+              <line x1="0" y1="-46" x2="0" y2="-58"/><line x1="0" y1="46" x2="0" y2="58"/>
+              <line x1="-46" y1="0" x2="-58" y2="0"/><line x1="46" y1="0" x2="58" y2="0"/>
+              <line x1="-33" y1="-33" x2="-41" y2="-41"/><line x1="33" y1="33" x2="41" y2="41"/>
+              <line x1="33" y1="-33" x2="41" y2="-41"/><line x1="-33" y1="33" x2="-41" y2="41"/>
+            </g>
+          </g>
+          <text x="180" y="196" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="700" fill="#0b5c43">motor · fast, weak</text>
+          <text x="180" y="46" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#5c6b7a">high RPM ↻↻↻</text>
+          <!-- big gear -->
+          <g transform="translate(430,110)">
+            <circle r="78" fill="#eafaf7" stroke="#0ea5a3" stroke-width="2"/>
+            <circle r="10" fill="#0ea5a3"/>
+            <g stroke="#0ea5a3" stroke-width="9">
+              <line x1="0" y1="-78" x2="0" y2="-92"/><line x1="0" y1="78" x2="0" y2="92"/>
+              <line x1="-78" y1="0" x2="-92" y2="0"/><line x1="78" y1="0" x2="92" y2="0"/>
+              <line x1="-55" y1="-55" x2="-65" y2="-65"/><line x1="55" y1="55" x2="65" y2="65"/>
+              <line x1="55" y1="-55" x2="65" y2="-65"/><line x1="-55" y1="55" x2="-65" y2="65"/>
+            </g>
+          </g>
+          <text x="430" y="210" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="700" fill="#0b5c43">wheel · slow, strong</text>
+          <text x="430" y="24" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#5c6b7a">low RPM · high torque ⟳</text>
+        </svg>
+        </div>
+        <div class="cap"><b>Figure 26.1</b> — Gear reduction: the small gear spins fast; the big gear turns slower but far stronger. Torque is what crosses litter.</div>
+      </div>
+      <p>Two independent geared motors (one per side) give <b>differential drive</b> — the steering method of Level 28.</p>
+      <div class="builds"><b>Builds on</b> → Level 24 (traction needs torque).</div>
+    </article>
+
+    <article class="chapter" id="l27">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>27</b></span>
+        <div><p class="ck">Part IV · Mechanics</p><h3>Motor drivers (ESCs)</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> A microcontroller can only whisper tiny control signals; a motor needs to be fed big, precisely-timed gulps of battery current. The driver is the translator and muscle in between.</div>
+      <p>A motor driver (for BLDC motors, an <b>ESC — electronic speed controller</b>, e.g. an ODrive or VESC) takes a low-power command and switches high battery current to the motor coils using <b>PWM (pulse-width modulation)</b> — rapidly pulsing power on and off so the <i>average</i> sets the speed. Good drivers run a <b>closed loop</b>: they read the encoder (Level 28) and constantly correct to hold the exact commanded speed or torque, even as litter resistance changes.</p>
+      <p>Crucially, drivers also protect the system — limiting current so a stalled scarifier can't burn out a motor, and reporting faults up to the controller. They are where software intention becomes physical, controlled force.</p>
+      <div class="builds"><b>Builds on</b> → Level 26 (motors). <b>Pairs with</b> → Level 45 (the MCU).</div>
+    </article>
+
+    <article class="chapter" id="l28">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>28</b></span>
+        <div><p class="ck">Part IV · Mechanics</p><h3>Odometry: encoders &amp; the IMU</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> To act on a map (Part X) the robot must first know how far it has moved and which way it is facing. Odometry is that self-measurement — and it enables differential-drive steering.</div>
+      <p>An <b>encoder</b> on each drive motor counts shaft rotations: pulse rate gives speed, total count gives distance travelled by each wheel. Because the two wheels are driven independently (<b>differential drive</b>), the controller steers purely by speed difference — spin both wheels equally to go straight, drive one faster to curve, spin them opposite to <b>turn in place</b> (vital in a crowded house).</p>
+      <p>Wheels slip on loose litter, so encoders alone drift. An <b>IMU (inertial measurement unit)</b> — accelerometer + gyroscope + magnetometer — measures real motion and heading and is fused with the encoder data to correct that slip. Together they answer "where am I now?", the question SLAM (Level 48) turns into "where am I on the map?"</p>
+      <div class="builds"><b>Builds on</b> → Levels 26–27. <b>Sets up</b> → Level 48 (navigation).</div>
+    </article>
+    <div class="part-divider" id="part5">
+      <div class="pt">Part V</div>
+      <h2>The Cleaning Payload</h2>
+      <p>Here the machine earns its keep. Two mechanisms — a litter scarifier and a biocide nebuliser — are the direct answers to the ammonia and pathogen problems from Part I. This is the heart of the Octopus model.</p>
+      <div class="range">Levels 29–33</div>
+    </div>
+
+    <article class="chapter" id="l29">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>29</b></span>
+        <div><p class="ck">Part V · Cleaning payload</p><h3>The scarifier: mechanics of aeration</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> This is the automation of Level 12 and the direct cure for Levels 4–5: a rotating tool that keeps litter dry and loose so ammonia never builds.</div>
+      <p>A <b>scarifier</b> is a powered drum or bar fitted with tines/rakes, slung under the rear of the robot and spun by its own geared motor. As the robot drives, the tines dig into the top layer of litter, lift it, and drop it — mixing air through the bed and breaking up compacted cake. Exposed to air, trapped moisture evaporates, and (from Level 5) the ammonia reaction slows right down.</p>
+      <div class="fig">
+        <div class="svg-wrap">
+        <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scarifier turning caked litter into loose litter">
+          <rect x="0" y="0" width="720" height="250" rx="12" fill="#fbfdfc"/>
+          <!-- robot body -->
+          <rect x="250" y="40" width="220" height="60" rx="12" fill="#0f1a22"/>
+          <text x="360" y="76" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="700" fill="#cdeee1">robot drives →</text>
+          <!-- wheels -->
+          <circle cx="285" cy="112" r="20" fill="#1c2530" stroke="#3a4a57" stroke-width="3"/>
+          <circle cx="435" cy="112" r="20" fill="#1c2530" stroke="#3a4a57" stroke-width="3"/>
+          <!-- scarifier drum -->
+          <circle cx="360" cy="150" r="30" fill="#e8f6f0" stroke="#12805c" stroke-width="2.5"/>
+          <g stroke="#12805c" stroke-width="5">
+            <line x1="360" y1="120" x2="360" y2="108"/><line x1="360" y1="180" x2="360" y2="192"/>
+            <line x1="330" y1="150" x2="318" y2="150"/><line x1="390" y1="150" x2="402" y2="150"/>
+            <line x1="339" y1="129" x2="331" y2="121"/><line x1="381" y1="171" x2="389" y2="179"/>
+            <line x1="381" y1="129" x2="389" y2="121"/><line x1="339" y1="171" x2="331" y2="179"/>
+          </g>
+          <path d="M395 138 a30 30 0 0 1 -8 26" fill="none" stroke="#0ea5a3" stroke-width="2" marker-end="url(#sp)"/>
+          <text x="360" y="150" text-anchor="middle" dy="4" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="10" fill="#0b5c43">spin</text>
+          <!-- caked litter (left, before) -->
+          <rect x="30" y="180" width="300" height="60" rx="6" fill="#c7a878"/>
+          <path d="M30 180 h300" stroke="#a9895c" stroke-width="4"/>
+          <text x="150" y="216" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="700" fill="#6f5230">caked · wet · gassing NH₃</text>
+          <!-- loose litter (right, after) -->
+          <rect x="390" y="180" width="300" height="60" rx="6" fill="#ecd8b0"/>
+          <g fill="#d9b98a"><circle cx="430" cy="188" r="4"/><circle cx="470" cy="184" r="4"/><circle cx="520" cy="190" r="4"/><circle cx="580" cy="185" r="4"/><circle cx="630" cy="189" r="4"/></g>
+          <text x="560" y="216" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="700" fill="#0b5c43">loose · aerated · drying</text>
+          <defs><marker id="sp" markerWidth="9" markerHeight="9" refX="5" refY="5" orient="auto"><path d="M0 0 L8 5 L0 10 z" fill="#0ea5a3"/></marker></defs>
+        </svg>
+        </div>
+        <div class="cap"><b>Figure 29.1</b> — The scarifier turns caked, wet, ammonia-generating litter (left) into loose, aerated, drying litter (right).</div>
+      </div>
+      <p>Continuous light aeration on every patrol beats one hard manual pass a week: moisture never accumulates into cake in the first place, so ammonia stays low for the whole flock.</p>
+      <div class="builds"><b>Builds on</b> → Levels 5, 12. <b>Needs</b> → Level 30 (depth control).</div>
+    </article>
+
+    <article class="chapter" id="l30">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>30</b></span>
+        <div><p class="ck">Part V · Cleaning payload</p><h3>Depth control: the height actuator</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> The scarifier must bite the litter at the right depth when working — but lift clear when turning, docking, or passing birds. Something has to raise and lower it on command.</div>
+      <p>A <b>linear actuator</b> — an electric motor turning a lead-screw that pushes a rod in and out — sets the drum's height. Extend it to press the tines a few centimetres into the bed; retract it to lift the tool for transit so it can't snag litter or startle birds. Depth can be tuned to litter condition: shallow on a good day, deeper into a stubborn cake.</p>
+      <p>This is also a safety and welfare feature: a spinning tool is only ever near the floor when it is meant to be working, and it lifts instantly if the robot needs to stop or reverse. Control of "when the tool touches" is as important as the tool itself.</p>
+      <div class="builds"><b>Builds on</b> → Level 29. <b>Commanded by</b> → Level 45 (MCU) &amp; Level 33 (timing).</div>
+    </article>
+
+    <article class="chapter" id="l31">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>31</b></span>
+        <div><p class="ck">Part V · Cleaning payload</p><h3>The biocide system: tank &amp; pump</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> This is the automation of Level 13 and the tool against Level 7's disease loop: the robot must carry and deliver disinfectant on its own.</div>
+      <p>Onboard sits a food-grade <b>tank</b> (5–10 L) of disinfectant with a <b>level sensor</b> so the robot knows when to alert for a refill. A <b>pump</b> — a diaphragm or peristaltic type, chosen because they handle chemicals well and self-prime — draws liquid from the tank and pressurises it toward the spray nozzles. The pump rate sets how much biocide is laid down per metre travelled.</p>
+      <p>Two modes matter: a light treatment while birds are present (bird-safe products, gentle dosing), and a heavy <b>empty-house decontamination</b> during downtime, when the robot can fog the whole shed unattended overnight — doing the most hazardous human job (Level 13) with no human in the room.</p>
+      <div class="builds"><b>Builds on</b> → Levels 7, 13. <b>Delivers via</b> → Level 32 (nozzles).</div>
+    </article>
+
+    <article class="chapter" id="l32">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>32</b></span>
+        <div><p class="ck">Part V · Cleaning payload</p><h3>Nebulisation: droplet physics</h3></div></div>
+      <div class="why"><span class="k">Why it matters</span> How the disinfectant is broken up decides whether it works. Too coarse and it soaks the litter (adding the moisture we fight in Level 4); too fine and it drifts away. The sweet spot is a fog.</div>
+      <p><b>Nebulisation</b> (fogging) forces the liquid through fine nozzles that atomise it into very small droplets — a mist that floats briefly and settles evenly over surfaces and litter without wetting them through. Even coverage means every surface gets disinfectant contact; low added moisture means you don't undo the drying work of the scarifier.</p>
+      <div class="fig">
+        <div class="svg-wrap">
+        <svg viewBox="0 0 700 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Coarse spray versus fine fog droplets">
+          <rect x="0" y="0" width="700" height="210" rx="12" fill="#fbfdfc"/>
+          <text x="175" y="34" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="800" fill="#b91c1c">Coarse spray — soaks litter</text>
+          <g fill="#7fb0d8"><circle cx="120" cy="90" r="18"/><circle cx="180" cy="110" r="22"/><circle cx="230" cy="85" r="15"/><circle cx="150" cy="140" r="20"/></g>
+          <text x="175" y="188" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#7a2f22">adds moisture · uneven</text>
+          <line x1="350" y1="30" x2="350" y2="180" stroke="#e4eaef" stroke-width="2"/>
+          <text x="525" y="34" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="800" fill="#0b5c43">Fine fog — even, dry contact</text>
+          <g fill="#57c3a3"><circle cx="430" cy="80" r="3"/><circle cx="450" cy="100" r="2.5"/><circle cx="470" cy="70" r="3"/><circle cx="490" cy="95" r="2"/><circle cx="510" cy="78" r="3"/><circle cx="530" cy="105" r="2.5"/><circle cx="550" cy="82" r="2"/><circle cx="470" cy="120" r="2.5"/><circle cx="505" cy="130" r="2"/><circle cx="540" cy="128" r="2.5"/><circle cx="440" cy="135" r="2"/><circle cx="575" cy="98" r="3"/><circle cx="595" cy="82" r="2"/><circle cx="610" cy="110" r="2.5"/></g>
+          <text x="525" y="188" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#0b5c43">covers everything · barely wets</text>
+        </svg>
+        </div>
+        <div class="cap"><b>Figure 32.1</b> — Droplet size is everything: a fine fog coats surfaces uniformly without re-wetting the litter you just dried.</div>
+      </div>
+      <p>Bonus: a fine mist also knocks airborne dust out of the air (Level 6), so one mechanism serves disinfection <i>and</i> dust control.</p>
+      <div class="builds"><b>Builds on</b> → Levels 4, 6, 31.</div>
+    </article>
+
+    <article class="chapter" id="l33">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>33</b></span>
+        <div><p class="ck">Part V · Cleaning payload</p><h3>Payload integration &amp; timing</h3></div></div>
+      <div class="why"><span class="k">Why it matters</span> Two cleaning tools plus a moving vehicle only help if they act at the right place and time. Integration is what turns parts into a function.</div>
+      <p>The payload must be choreographed with driving. The robot lowers and runs the scarifier only while patrolling litter, lifts it to turn or dock, and doses biocide at a rate matched to its ground speed so coverage stays even. When perception (Part VI) flags a <b>wet spot</b>, the robot slows and works that patch harder — targeted aeration exactly where Level 4's problem is worst.</p>
+      <p>This coordination is why the robot needs a real-time controller (Level 45) beneath its AI brain (Level 44): tool timing, speed and safety must be deterministic. The payload is not a bolt-on; it is woven into the motion-control loop.</p>
+      <div class="builds"><b>Builds on</b> → Levels 29–32. <b>Coordinated by</b> → Levels 44–45; <b>guided by</b> → Part VI.</div>
+    </article>
+
+    <div class="part-divider" id="part6">
+      <div class="pt">Part VI</div>
+      <h2>Perception — the Senses</h2>
+      <p>To clean intelligently and to watch the flock, the robot needs senses. This part builds its eyes — for driving safely and for the AI surveillance that replaces the human's daily inspection.</p>
+      <div class="range">Levels 34–39</div>
+    </div>
+
+    <article class="chapter" id="l34">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>34</b></span>
+        <div><p class="ck">Part VI · Perception</p><h3>Sensing = two jobs at once</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> Every sensor on this robot pulls double duty: it keeps the machine from hurting birds or itself, <i>and</i> it feeds the surveillance mission. Understanding this dual role explains the whole sensor suite.</div>
+      <p>Job one is <b>navigation &amp; safety</b>: don't hit a wall, a feed line, a person, or a bird. Job two is <b>surveillance</b>: find dead and sick birds, read distribution, spot faults — the automation of Levels 14–15. The clever part of the design is that the same cameras and rangefinders serve both.</p>
+      <p>No single sensor is enough, so we use several that fail in different conditions and fuse them — LiDAR for geometry in the dark and dust, cameras for rich detail, thermal for heat and night, proximity as a last-resort backstop. The next chapters take them one at a time.</p>
+      <div class="builds"><b>Builds on</b> → Levels 14–15. <b>Feeds</b> → Part VIII (the brain).</div>
+    </article>
+
+    <article class="chapter" id="l35">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>35</b></span>
+        <div><p class="ck">Part VI · Perception</p><h3>LiDAR: seeing with light</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> The robot needs reliable distance measurement that works in darkness and dust, where cameras struggle. LiDAR provides the geometric backbone for navigation.</div>
+      <p><b>LiDAR (Light Detection and Ranging)</b> fires rapid laser pulses and times how long each reflection takes to return. Because light travels at a known speed, time-of-flight converts directly to distance. Sweeping the beam around builds a precise 2-D or 3-D map of walls, equipment and obstacles — dozens of times a second, in the dark, through airborne dust.</p>
+      <div class="fig">
+        <div class="svg-wrap">
+        <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LiDAR time of flight ranging">
+          <rect x="0" y="0" width="700" height="200" rx="12" fill="#fbfdfc"/>
+          <rect x="40" y="80" width="90" height="46" rx="10" fill="#0f1a22"/>
+          <text x="85" y="108" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="700" fill="#cdeee1">LiDAR</text>
+          <!-- object -->
+          <rect x="560" y="60" width="60" height="86" rx="8" fill="#e6cfa6" stroke="#b98a5a" stroke-width="2"/>
+          <text x="590" y="164" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#7a5a33">obstacle</text>
+          <!-- out pulse -->
+          <line x1="130" y1="96" x2="558" y2="96" stroke="#12805c" stroke-width="3" marker-end="url(#lo)"/>
+          <text x="330" y="86" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" fill="#0b5c43">laser pulse →</text>
+          <!-- back pulse -->
+          <line x1="558" y1="116" x2="132" y2="116" stroke="#0ea5a3" stroke-width="3" stroke-dasharray="6 5" marker-end="url(#lb)"/>
+          <text x="330" y="136" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" fill="#0ea5a3">← reflection</text>
+          <text x="350" y="176" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="700" fill="#1c2530">distance = (speed of light × time) ÷ 2</text>
+          <defs>
+            <marker id="lo" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0 0 L8 5 L0 10 z" fill="#12805c"/></marker>
+            <marker id="lb" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0 0 L8 5 L0 10 z" fill="#0ea5a3"/></marker>
+          </defs>
+        </svg>
+        </div>
+        <div class="cap"><b>Figure 35.1</b> — Time-of-flight ranging: measure how long light takes to bounce back, and you know the distance.</div>
+      </div>
+      <div class="builds"><b>Builds on</b> → Level 34. <b>Feeds</b> → Level 48 (SLAM).</div>
+    </article>
+
+    <article class="chapter" id="l36">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>36</b></span>
+        <div><p class="ck">Part VI · Perception</p><h3>Depth &amp; stereo cameras</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> LiDAR gives sparse geometry; the robot also needs dense, per-pixel distance to judge the exact shape and position of birds, wet spots and small obstacles right in front of it.</div>
+      <p>A <b>stereo (depth) camera</b> uses two lenses a known distance apart, exactly like human eyes. Software compares the two images and measures the shift (<b>disparity</b>) of each feature between them — near objects shift a lot, far objects a little — and converts that into a distance for every pixel. The result is a 3-D "point cloud" of the scene ahead.</p>
+      <p>That dense depth is what lets the robot avoid stepping on a bird, gauge the height of a cake ridge for the scarifier, and give the AI models a 3-D sense of where a detected carcass actually lies on the floor. It complements LiDAR: richer and closer-range, but more affected by darkness and dust — which is why we keep both.</p>
+      <div class="builds"><b>Builds on</b> → Levels 34–35. <b>Feeds</b> → Levels 44, 48.</div>
+    </article>
+
+    <article class="chapter" id="l37">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>37</b></span>
+        <div><p class="ck">Part VI · Perception</p><h3>RGB vision &amp; the AI eye</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> This is the sensor that replaces the stockperson's eyes (Level 14). Colour images are what the AI models read to find dead birds, judge distribution, and spot equipment faults.</div>
+      <p>A high-resolution <b>RGB camera</b> captures ordinary colour frames. A <b>global shutter</b> (capturing the whole frame at one instant) is preferred so images don't smear while the robot moves. On its own the camera just sees pixels — the intelligence comes in Part VIII, where neural networks turn those pixels into "that's a dead bird," "birds are avoiding this corner," or "this nipple drinker is leaking."</p>
+      <p>Because it is mobile and tireless, this eye does what a human round cannot: it inspects the whole house continuously, quantifies what it sees, and logs it — turning subjective "the flock looks off" into measured, time-stamped data (Level 9's early-detection payoff).</p>
+      <div class="builds"><b>Builds on</b> → Levels 14, 34. <b>Interpreted by</b> → Level 44.</div>
+    </article>
+
+    <article class="chapter" id="l38">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>38</b></span>
+        <div><p class="ck">Part VI · Perception</p><h3>Thermal imaging</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> Houses are often dark, and heat carries health information a colour camera can't see. Thermal vision lets the robot work and watch around the clock.</div>
+      <p>A <b>thermal camera</b> uses a <b>microbolometer</b> — a grid of tiny elements whose electrical resistance changes with the infrared (heat) radiation falling on them — to build a temperature image. It needs no light at all, so night patrols are as effective as day. Heat patterns also add clues: a cold spot where birds avoid a draught, an abnormally cold carcass, or hot zones with poor airflow.</p>
+      <p>Fused with the RGB camera, thermal makes detections more robust: a shape that is bird-sized <i>and</i> the wrong temperature is a confident dead-bird call. It is a second, independent way of seeing — valuable precisely because it fails differently from ordinary cameras.</p>
+      <div class="builds"><b>Builds on</b> → Levels 34, 37. <b>Feeds</b> → Level 44.</div>
+    </article>
+
+    <article class="chapter" id="l39">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>39</b></span>
+        <div><p class="ck">Part VI · Perception</p><h3>Proximity, bumpers &amp; the safety net</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> Smart sensors can be fooled by dust, glare or an unexpected bird. A simple, independent safety layer must catch what the clever sensors miss — because a mistake here hurts a living animal.</div>
+      <p>A ring of short-range <b>ultrasonic or time-of-flight</b> sensors gives a last-metre distance check all around the robot, and physical <b>bumper switches</b> cut drive power the instant anything is actually touched. These are deliberately dumb and reliable — they don't reason, they just stop the machine.</p>
+      <p>This defence-in-depth is a core safety principle: never trust one system with a life. The AI plans, LiDAR and cameras guide, but the bumper is the reflex that always works. It is the physical embodiment of the bird-safety promise the whole design makes (expanded in Level 49).</p>
+      <div class="builds"><b>Builds on</b> → Level 34. <b>Expanded in</b> → Level 49 (safety).</div>
+    </article>
+    <div class="part-divider" id="part7">
+      <div class="pt">Part VII</div>
+      <h2>Environmental Sensing</h2>
+      <p>The robot's second surveillance gift: because it lives on the floor, it measures the air, litter and sound exactly where the birds do. These are the numbers a human can only guess at.</p>
+      <div class="range">Levels 40–42</div>
+    </div>
+
+    <article class="chapter" id="l40">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>40</b></span>
+        <div><p class="ck">Part VII · Environment</p><h3>Gas sensing: ammonia &amp; CO₂</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> Ammonia (Levels 5–6) is the invisible enemy and CO₂ reveals ventilation health. A floor robot measures both at bird height, where fixed ceiling sensors are blind.</div>
+      <p>An <b>electrochemical NH₃ cell</b> senses ammonia: the gas reacts at an internal electrode and produces a small electric current proportional to concentration — a direct ppm reading. A <b>CO₂ sensor</b> uses <b>NDIR (non-dispersive infrared)</b>: CO₂ absorbs a specific infrared wavelength, so measuring how much of that light is absorbed gives the concentration.</p>
+      <p>The power is in <i>mapping</i>. As the robot roams, it builds a heat-map of ammonia and CO₂ across the whole house, exposing the low-lying ammonia pocket by a leaky drinker or the stagnant corner a fixed sensor never reaches. This is Level 15's manual "feel the air," turned into precise, located numbers.</p>
+      <div class="builds"><b>Builds on</b> → Levels 5–6, 15.</div>
+    </article>
+
+    <article class="chapter" id="l41">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>41</b></span>
+        <div><p class="ck">Part VII · Environment</p><h3>Climate &amp; dust: temp, humidity, PM</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> Temperature drives FCR and comfort; humidity predicts litter caking; dust is a respiratory hazard. All three shape bird health from Part I and need continuous, mapped measurement.</div>
+      <p>A combined <b>temperature/humidity sensor</b> (e.g. Sensirion SHT-series) uses tiny elements whose electrical properties change with heat and moisture, digitised to °C and %RH. A <b>PM (particulate) sensor</b> shines a laser across an air sample and counts the light scattered by passing dust particles to estimate how much is in the air.</p>
+      <p>Humidity is the early-warning cousin of litter moisture (Level 4): rising %RH foretells caking before it happens, letting the robot pre-emptively aerate. Dust maps tell the farmer when to adjust ventilation and confirm whether the fogging (Level 32) is knocking particulate down.</p>
+      <div class="builds"><b>Builds on</b> → Levels 4, 6. <b>Acts through</b> → Levels 29, 32.</div>
+    </article>
+
+    <article class="chapter" id="l42">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>42</b></span>
+        <div><p class="ck">Part VII · Environment</p><h3>Litter moisture, light &amp; sound</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> Three more senses close the loop: measure moisture at its source, verify the lighting program, and <i>hear</i> disease before it's visible.</div>
+      <p>A rear-mounted <b>capacitive moisture probe</b> reads litter wetness directly — water changes the dielectric between its prongs, and capacitance maps to % moisture. This is the most upstream signal in the whole system (Level 4), letting the robot target aeration exactly where it's needed. A <b>light sensor</b> checks the lighting program that governs bird behaviour and growth.</p>
+      <p>Most powerfully, a <b>microphone array</b> plus audio AI lets the robot <i>listen</i>: flocks with respiratory disease develop characteristic rales and sneezes, and stress changes the soundscape — often before anything is visible. Multiple mics also give direction, pointing to <i>where</i> in the house the sound comes from.</p>
+      <div class="builds"><b>Builds on</b> → Levels 4, 14. <b>Interpreted by</b> → Level 44.</div>
+    </article>
+
+    <div class="part-divider" id="part8">
+      <div class="pt">Part VIII</div>
+      <h2>The Brain</h2>
+      <p>Senses are useless without something to interpret and act. Here we give the robot two minds — one clever, one dependable — and the intelligence that turns pixels and sound into decisions.</p>
+      <div class="range">Levels 43–45</div>
+    </div>
+
+    <article class="chapter" id="l43">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>43</b></span>
+        <div><p class="ck">Part VIII · The brain</p><h3>Two brains: smart vs safe</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> Heavy AI is powerful but unpredictable in timing; safety needs guaranteed, instant response. You cannot get both from one processor, so the robot uses two — each doing what it's best at.</div>
+      <p>A high-power <b>AI computer</b> handles perception, mapping and planning — big, occasionally slow, "thinking" work. A separate <b>real-time microcontroller (MCU)</b> owns motors, the scarifier, the pump and the emergency stop, running a fixed control loop that <i>always</i> responds within milliseconds. The AI proposes; the MCU disposes — and the MCU can stop the machine even if the AI hangs.</p>
+      <div class="fig">
+        <pre class="mermaid">
+flowchart TD
+  SEN["Sensors (Parts VI–VII)"] --> AI["AI computer (Jetson)<br/>perceive · map · plan"]
+  AI -->|"goals &amp; paths"| MCU["Real-time MCU (STM32)<br/>motors · tools · safety"]
+  MCU -->|"status &amp; feedback"| AI
+  MCU --> ACT["Motors · scarifier · pump · actuator"]
+  ESTOP(["E-stop / bumpers"]) --> MCU
+  AI --> NET["WiFi / 4G → cloud dashboard"]
+        </pre>
+        <div class="cap"><b>Figure 43.1</b> — Split-brain control: a thinking computer above, a dependable real-time controller below with a direct line to the safety hardware.</div>
+      </div>
+      <div class="builds"><b>Builds on</b> → Levels 27, 33, 39. <b>Detailed in</b> → Levels 44–45.</div>
+    </article>
+
+    <article class="chapter" id="l44">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>44</b></span>
+        <div><p class="ck">Part VIII · The brain</p><h3>Edge AI: how machines recognise</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> This is the intelligence that replaces the stockperson's trained judgement (Level 14) — turning camera and microphone data into "dead bird here," "lame bird there," "this drinker leaks."</div>
+      <p>A <b>neural network</b> is a model trained on thousands of labelled examples until it learns the visual and audio patterns of each target. Shown a new frame, it outputs detections with confidence scores. Running these models <b>on the robot ("edge AI")</b> rather than in the cloud means decisions don't depend on the network and happen in real time — essential in a metal shed with patchy connectivity.</p>
+      <div class="concept"><b>Why a GPU:</b> neural networks are millions of small multiplications done at once. A computer like the <b>NVIDIA Jetson Orin</b> has a GPU built to run those in parallel, so it can analyse live video on battery power.</div>
+      <p>The model suite mirrors the surveillance function set (Level 19): dead-bird, gait/lameness, distribution heat-map, drinker/feeder fault, wet-litter, plus an audio model for respiratory/stress sounds. Their outputs become alerts and records (Level 48).</p>
+      <div class="builds"><b>Builds on</b> → Levels 19, 37–38, 42.</div>
+    </article>
+
+    <article class="chapter" id="l45">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>45</b></span>
+        <div><p class="ck">Part VIII · The brain</p><h3>The real-time MCU &amp; buses</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> The safety-critical, precisely-timed jobs — motor control, tool timing, reading the E-stop — must never wait for the AI. A dedicated microcontroller guarantees that.</div>
+      <p>The <b>MCU</b> (e.g. an STM32 or Teensy) runs a tight, deterministic loop: read encoders, IMU and gas sensors; command the motor drivers, scarifier and pump; watch the bumpers and E-stop. Because it does only this, its response time is guaranteed — the foundation of collaborative safety (Level 49).</p>
+      <p>Everything talks over robust internal <b>buses</b>: <b>CAN bus</b> carries short, noise-resistant control messages between the MCU, drivers and sensors (it was built for exactly this in vehicles), while <b>USB3</b> handles the heavy camera and LiDAR data into the AI computer. Choosing buses that survive electrical noise matters in a shed full of motors and fans.</p>
+      <div class="builds"><b>Builds on</b> → Levels 27–28, 33, 39, 43.</div>
+    </article>
+
+    <div class="part-divider" id="part9">
+      <div class="pt">Part IX</div>
+      <h2>Power</h2>
+      <p>None of the above runs without energy — safely stored, cleanly distributed, and replenished without a human. Power is the quiet system that decides whether the robot can truly work 24/7.</p>
+      <div class="range">Levels 46–47</div>
+    </div>
+
+    <article class="chapter" id="l46">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>46</b></span>
+        <div><p class="ck">Part IX · Power</p><h3>Energy: battery chemistry &amp; the BMS</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> The robot needs lots of energy for motors and a digging scarifier, in a hot, dusty, enclosed building full of live animals — so the battery must be high-current <i>and</i> exceptionally safe.</div>
+      <p>The chosen chemistry is <b>LiFePO₄ (lithium iron phosphate)</b>: it delivers high current, lasts many hundreds of charge cycles, and — unlike ordinary lithium-ion — is highly resistant to thermal runaway (fire). In a barn you cannot afford a battery that might ignite, so this trade of a little energy density for a lot of safety is the right one.</p>
+      <p>Every pack is guarded by a <b>BMS (battery management system)</b>: it monitors each cell's voltage and temperature, balances them, and cuts the circuit if anything exceeds a safe limit (over-charge, over-current, over-heat). The BMS is why the pack lasts and why it's safe. Mounted low and central, this heavy pack also gives the robot its stability (Level 25).</p>
+      <div class="builds"><b>Builds on</b> → Levels 25–26 (torque draws current). <b>Distributed by</b> → Level 47.</div>
+    </article>
+
+    <article class="chapter" id="l47">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>47</b></span>
+        <div><p class="ck">Part IX · Power</p><h3>Distribution &amp; self-docking</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> Different subsystems need different voltages, the machine must be killable instantly, and — to be truly autonomous — it must recharge itself without anyone lifting a finger.</div>
+      <p>The pack feeds a <b>24 V main bus</b>. Motors take that directly; <b>DC-DC converters</b> step it down to clean 12 V (LiDAR, pump, actuator) and 5 V (AI computer, MCU, sensors) rails. Between the pack and the motor bus sits the <b>E-stop / contactor</b> — a hardware switch that physically cuts motor power regardless of software.</p>
+      <div class="fig">
+        <pre class="mermaid">
+flowchart LR
+  DOCK["Charging dock"] --> CHG["Onboard charger"] --> BMS
+  BAT["LiFePO₄ 24V pack"] --> BMS["BMS + protection"]
+  BMS --> ES["E-stop / contactor"] --> BUS["24V main bus"]
+  BUS --> MOT["Motor drivers → motors"]
+  BUS --> SCA["Scarifier motor"]
   BUS --> D12["DC-DC 12V"]
   BUS --> D5["DC-DC 5V"]
-  D12 --> LID["LiDAR"]
-  D12 --> PMP["Nebuliser pump"]
-  D12 --> ACT["Height actuator"]
-  D5 --> JET["Jetson"]
-  D5 --> MCU["MCU"]
-  D5 --> SEN["Sensor suite"]
-      </pre>
-      <div class="caption">Figure 2 — Power tree. 24V bus feeds motors directly; 12V/5V rails feed everything else.</div>
-    </div>
-  </section>
-
-  <section id="dataflow">
-    <h2><span class="num">05</span>Control &amp; data flow</h2>
-    <p class="lead">The perceive &rarr; plan &rarr; act loop. Sensors feed the AI computer, which builds a world model and a plan; the MCU executes it on the hardware; telemetry streams to the cloud.</p>
-    <div class="diagram">
-      <pre class="mermaid">
-flowchart LR
-  S["Sensors: LiDAR, cameras, gas, mic, IMU"] --> P["Perception & AI (Jetson)"]
-  P --> W["World model / SLAM map"]
-  W --> PL["Task & path planner"]
-  PL --> CMD["Motion + tool commands"]
-  CMD --> MCU["Real-time MCU"]
-  MCU --> A["Motors · scarifier · pump · actuator"]
-  A -. "encoders / feedback" .-> S
-  P --> T["Telemetry & events"]
-  T --> C[("Cloud dashboard · mobile alerts · vet")]
-      </pre>
-      <div class="caption">Figure 3 — Closed-loop control with cloud telemetry for records and alerts.</div>
-    </div>
-  </section>
-
-  <section id="layout">
-    <h2><span class="num">06</span>Physical layout</h2>
-    <p class="lead">Top-view placement of the major components on the chassis. Heavy items (battery) sit low and central for stability; sensors face forward; the cleaning payload trails at the rear.</p>
-    <div class="diagram">
-      <div class="svg-wrap">
-      <svg viewBox="0 0 860 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Top-view component layout of the poultry robot">
-        <defs>
-          <style>
-            .lbl{font:600 13px -apple-system,Segoe UI,Roboto,sans-serif;fill:#1a2430}
-            .sub{font:500 11px -apple-system,Segoe UI,Roboto,sans-serif;fill:#5b6b7a}
-            .box{fill:#fff;stroke:#12805c;stroke-width:1.5;rx:8}
-            .soft{fill:#e7f6f0;stroke:#0ea5a3;stroke-width:1.3}
-            .lead{stroke:#9fb2bf;stroke-width:1;stroke-dasharray:3 3}
-          </style>
-        </defs>
-
-        <!-- chassis -->
-        <rect x="230" y="40" width="400" height="380" rx="28" fill="#f1f6f4" stroke="#1a2430" stroke-width="2"/>
-        <text x="430" y="30" text-anchor="middle" class="sub">FRONT</text>
-        <text x="430" y="448" text-anchor="middle" class="sub">REAR</text>
-
-        <!-- wheels -->
-        <rect x="200" y="80" width="30" height="70" rx="8" fill="#1a2430"/>
-        <rect x="630" y="80" width="30" height="70" rx="8" fill="#1a2430"/>
-        <rect x="200" y="310" width="30" height="70" rx="8" fill="#1a2430"/>
-        <rect x="630" y="310" width="30" height="70" rx="8" fill="#1a2430"/>
-        <text x="190" y="120" text-anchor="end" class="sub">wheel</text>
-        <text x="670" y="120" class="sub">wheel</text>
-
-        <!-- front bumper + proximity -->
-        <rect x="250" y="52" width="360" height="16" rx="8" class="soft"/>
-        <text x="430" y="64" text-anchor="middle" class="sub">bumper + ToF proximity ring</text>
-
-        <!-- sensor mast -->
-        <rect x="360" y="82" width="140" height="52" class="box" rx="8"/>
-        <text x="430" y="103" text-anchor="middle" class="lbl">Sensor mast</text>
-        <text x="430" y="121" text-anchor="middle" class="sub">LiDAR · RGB · thermal · depth</text>
-
-        <!-- env pod -->
-        <rect x="262" y="150" width="150" height="52" class="box" rx="8"/>
-        <text x="337" y="171" text-anchor="middle" class="lbl">Env. pod</text>
-        <text x="337" y="189" text-anchor="middle" class="sub">NH3·CO2·T/RH·PM·mic</text>
-
-        <!-- compute bay -->
-        <rect x="448" y="150" width="150" height="52" class="box" rx="8"/>
-        <text x="523" y="171" text-anchor="middle" class="lbl">Compute bay</text>
-        <text x="523" y="189" text-anchor="middle" class="sub">Jetson + MCU + SSD</text>
-
-        <!-- battery -->
-        <rect x="300" y="216" width="260" height="70" class="soft" rx="8"/>
-        <text x="430" y="245" text-anchor="middle" class="lbl">LiFePO4 battery + BMS</text>
-        <text x="430" y="264" text-anchor="middle" class="sub">low &amp; central mass · 24V bus · DC-DC</text>
-
-        <!-- biocide tank -->
-        <rect x="262" y="300" width="150" height="52" class="box" rx="8"/>
-        <text x="337" y="321" text-anchor="middle" class="lbl">Biocide tank</text>
-        <text x="337" y="339" text-anchor="middle" class="sub">pump + level sensor</text>
-
-        <!-- height actuator -->
-        <rect x="448" y="300" width="150" height="52" class="box" rx="8"/>
-        <text x="523" y="321" text-anchor="middle" class="lbl">Height actuator</text>
-        <text x="523" y="339" text-anchor="middle" class="sub">raises/lowers drum</text>
-
-        <!-- scarifier + nozzles rear -->
-        <rect x="262" y="366" width="336" height="40" class="soft" rx="8"/>
-        <text x="430" y="391" text-anchor="middle" class="lbl">Scarifier drum + nebuliser nozzles + moisture probe</text>
-
-        <!-- E-stop -->
-        <circle cx="600" cy="120" r="14" fill="#b91c1c"/>
-        <text x="600" y="150" text-anchor="middle" class="sub">E-stop</text>
-      </svg>
+  D12 --> L12["LiDAR · pump · actuator"]
+  D5 --> L5["Jetson · MCU · sensors"]
+        </pre>
+        <div class="cap"><b>Figure 47.1</b> — The power tree: one protected path from pack to every load, with 12 V/5 V rails and an instant hardware kill.</div>
       </div>
-      <div class="caption">Figure 4 — Top-view layout (schematic, not to scale). Front sensing, central mass, rear cleaning payload.</div>
+      <p><b>Self-docking</b> completes autonomy: guided by a beacon (Level 49), the robot returns to a charging dock between passes, mates sprung contacts, and tops up — so it can patrol, dock, recharge and patrol again, around the clock, unattended.</p>
+      <div class="builds"><b>Builds on</b> → Level 46. <b>Enables</b> → Level 50 (24/7 operation).</div>
+    </article>
+    <div class="part-divider" id="part10">
+      <div class="pt">Part X</div>
+      <h2>Autonomy &amp; the Whole</h2>
+      <p>The final climb: knit senses, brain, body and power into a machine that navigates itself, stays safe among living things, and delivers both master jobs. Level 50 is the finished robot.</p>
+      <div class="range">Levels 48–50</div>
     </div>
-  </section>
 
-  <section id="bom">
-    <h2><span class="num">07</span>Indicative bill of materials</h2>
-    <p class="lead">Rough prototype-grade cost bands (USD) for sourcing a first unit. Prices vary widely by supplier and region — treat as planning figures, not quotes.</p>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Subsystem</th><th>Key items</th><th>Indicative cost band</th></tr></thead>
-      <tbody>
-        <tr><td class="part">Chassis & mobility</td><td>Frame, sealed shell, wheels, suspension</td><td>$400 – $900</td></tr>
-        <tr><td class="part">Drive & motion</td><td>2&times; BLDC gearmotors, ODrive/VESC, encoders, IMU</td><td>$500 – $1,000</td></tr>
-        <tr><td class="part">Cleaning payload</td><td>Scarifier drum+motor, actuator, tank, pump, nozzles</td><td>$400 – $900</td></tr>
-        <tr><td class="part">Perception</td><td>LiDAR, depth cam, RGB, thermal, proximity</td><td>$900 – $2,200</td></tr>
-        <tr><td class="part">Environment</td><td>NH3, CO2, T/RH, PM, moisture, mic, light</td><td>$300 – $700</td></tr>
-        <tr><td class="part">Compute</td><td>Jetson Orin, STM32/Teensy, SSD, bus</td><td>$500 – $900</td></tr>
-        <tr><td class="part">Power</td><td>LiFePO4 pack, BMS, DC-DC, dock, E-stop</td><td>$400 – $800</td></tr>
-        <tr><td class="part">Connectivity</td><td>WiFi, optional 4G, antennas</td><td>$60 – $250</td></tr>
-        <tr><td class="part">Safety & docking</td><td>Beacon, tower light, wheel-wash dock</td><td>$150 – $400</td></tr>
-        <tr><td class="part"><b>Estimated total</b></td><td>Prototype single unit</td><td><b>~$3,600 – $8,000</b></td></tr>
-      </tbody>
-    </table></div>
-    <div class="callout warn">These are hobby/prototype-grade bands. A ruggedised, safety-certified commercial unit (like the Octopus) costs far more due to enclosure engineering, certification, and support.</div>
-  </section>
+    <article class="chapter" id="l48">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>48</b></span>
+        <div><p class="ck">Part X · Autonomy</p><h3>Navigation: SLAM &amp; path planning</h3></div></div>
+      <div class="why"><span class="k">Why it exists</span> To clean and watch the whole house on its own, the robot must know where it is, remember where it has been, and decide where to go next — with no human driving.</div>
+      <p><b>SLAM (Simultaneous Localisation and Mapping)</b> fuses LiDAR (Level 35), depth (Level 36) and odometry (Level 28) to do two things at once: build a map of the house <i>and</i> track its own position on that map in real time. With a map, a <b>path planner</b> can lay out efficient coverage patrols (so every square metre gets scarified and scanned), route around obstacles, and find its way home to the dock.</p>
+      <div class="fig">
+        <pre class="mermaid">
+flowchart LR
+  P["PERCEIVE<br/>LiDAR · cameras · gas · audio"] --> M["MAP &amp; LOCATE<br/>SLAM world model"]
+  M --> PLAN["PLAN<br/>coverage patrol · targets"]
+  PLAN --> ACT["ACT<br/>drive · scarify · fog"]
+  ACT --> P
+  M --> LOG["LOG &amp; ALERT<br/>cloud dashboard"]
+        </pre>
+        <div class="cap"><b>Figure 48.1</b> — The autonomy loop: perceive → map &amp; locate → plan → act, forever, while streaming records and alerts.</div>
+      </div>
+      <p>This closed loop — running many times a second — is what "autonomous" actually means: the robot senses, understands, decides and acts on its own, then does it again.</p>
+      <div class="builds"><b>Builds on</b> → Levels 28, 35–36, 43–44.</div>
+    </article>
 
-  <section id="build">
-    <h2><span class="num">08</span>Suggested build order</h2>
-    <p class="lead">De-risk in stages: get it driving safely first, then add sensing, then the cleaning payload, then autonomy.</p>
-    <ol class="build">
-      <li><b>Rolling chassis</b> Assemble frame, wheels, motors, drivers, battery, BMS, E-stop. Goal: safe manual (RC) driving over litter.</li>
-      <li><b>Motion control</b> Add MCU, encoders, IMU; tune closed-loop crawl speed and turn-in-place.</li>
-      <li><b>Perception</b> Mount LiDAR + cameras on the Jetson; bring up SLAM mapping and obstacle avoidance.</li>
-      <li><b>Environment sensing</b> Add the gas/climate/moisture/mic pod; start logging bird-level maps to the dashboard.</li>
-      <li><b>Cleaning payload</b> Fit the scarifier drum + height actuator; then the tank, pump and fogging nozzles.</li>
-      <li><b>Autonomy & docking</b> Add the charging dock, homing beacon, human-detect safe-speed, and dock-and-go patrol scheduling.</li>
-      <li><b>AI surveillance</b> Deploy dead-bird / distribution / drinker-fault models and audio health detection; wire up alerts.</li>
-    </ol>
-    <div class="callout">Start with surveillance + litter aeration (highest value, lowest risk). Add biocide fogging and any pickup manipulation last — they are the hardest and most safety-sensitive.</div>
-  </section>
+    <article class="chapter" id="l49">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>49</b></span>
+        <div><p class="ck">Part X · Autonomy</p><h3>Safety, biosecurity &amp; working with life</h3></div></div>
+      <div class="why"><span class="k">Foundational why</span> This machine works among living animals and people, and its whole purpose is to <i>reduce</i> disease. If it stresses birds, injures someone, or spreads pathogens, it fails — no matter how clever it is.</div>
+      <p><b>Bird &amp; human safety:</b> the robot moves slowly and predictably, and (via person/animal detection, Level 39, plus the MCU's guaranteed reflexes, Level 45) slows or stops near people and dense birds. It should carry <b>collaborative-safety certification</b> — the same standard as robots designed to share space with humans. The E-stop and bumpers are the hardware backstop that always works.</p>
+      <p><b>Biosecurity:</b> the robot must never become a disease vector. One robot stays in <b>one house</b> (moving between houses would carry pathogens, undoing Level 7's whole point), and its wheels/tools are cleaned at the dock (a disinfectant tray or UV step). A status beacon and buzzer tell staff what it's doing. Safety here isn't a feature bolted on — it's a precondition of the mission.</p>
+      <div class="builds"><b>Builds on</b> → Levels 2, 7, 39, 45.</div>
+    </article>
 
-</main>
+    <article class="chapter" id="l50">
+      <div class="ch-head"><span class="badge"><small>LEVEL</small><b>50</b></span>
+        <div><p class="ck">Part X · Autonomy</p><h3>Integration: the complete robot</h3></div></div>
+      <div class="why"><span class="k">The summit</span> Every level below now snaps together into one machine that answers Level 10's two master jobs — clean and watch — continuously, safely, and measured.</div>
+      <p>Here is the whole system, and how the parts you built relate. Power (IX) feeds two brains (VIII); the senses (VI–VII) flow up to the AI, which plans and commands the real-time controller; the controller drives the body (IV) and the cleaning payload (V); and it all runs the autonomy loop (X) while streaming records to the farmer.</p>
+      <div class="fig">
+        <pre class="mermaid">
+flowchart TD
+  subgraph PWR["IX · Power"]
+    BAT["LiFePO₄ + BMS"] --> BUS["24V bus + DC-DC"]
+  end
+  subgraph SNS["VI–VII · Senses"]
+    LIDC["LiDAR · depth"]
+    VIS["RGB · thermal · mic"]
+    ENVS["NH₃ · CO₂ · T/RH · PM · moisture"]
+  end
+  subgraph BRN["VIII · Brain"]
+    AI["AI computer — perceive/plan"]
+    MCU["Real-time MCU — control/safety"]
+  end
+  subgraph BODY["IV–V · Body &amp; payload"]
+    DRV["Drive motors + wheels"]
+    SCAR["Scarifier + actuator"]
+    FOG["Biocide pump + nozzles"]
+  end
+  NET["WiFi/4G → dashboard · alerts · records"]
 
-<footer>
-  <div class="foot-inner">
-    PoultryBot component datasheet · Octopus-style autonomous ground robot for broiler houses. Diagrams rendered with Mermaid. Example part numbers are illustrative starting points — verify specs and safety ratings before purchase. Not affiliated with Octopus Biosafety.
-  </div>
-</footer>
+  LIDC --> AI
+  VIS --> AI
+  ENVS --> MCU
+  AI <--> MCU
+  AI --> NET
+  MCU --> DRV
+  MCU --> SCAR
+  MCU --> FOG
+  BUS --> AI
+  BUS --> MCU
+  BUS --> DRV
+  ESTOP(["E-stop · bumpers"]) --> MCU
+        </pre>
+        <div class="cap"><b>Figure 50.1</b> — The complete robot: power → brains → body, with senses feeding the AI and a safety line straight to the controller.</div>
+      </div>
+      <h4>Physical layout — where it all sits</h4>
+      <div class="fig">
+        <div class="svg-wrap">
+        <svg viewBox="0 0 860 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Top-view layout of the complete robot">
+          <defs>
+            <linearGradient id="soft" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eafaf7"/><stop offset="1" stop-color="#e8f6f0"/></linearGradient>
+          </defs>
+          <rect x="230" y="40" width="400" height="390" rx="30" fill="#f1f6f4" stroke="#0f1a22" stroke-width="2.5"/>
+          <text x="430" y="30" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="700" fill="#5c6b7a">FRONT</text>
+          <text x="430" y="458" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="700" fill="#5c6b7a">REAR</text>
+          <!-- wheels -->
+          <g fill="#1c2530">
+            <rect x="200" y="86" width="30" height="72" rx="8"/><rect x="630" y="86" width="30" height="72" rx="8"/>
+            <rect x="200" y="312" width="30" height="72" rx="8"/><rect x="630" y="312" width="30" height="72" rx="8"/>
+          </g>
+          <text x="192" y="126" text-anchor="end" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#5c6b7a">wheel</text>
+          <text x="668" y="126" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#5c6b7a">wheel</text>
+          <!-- bumper -->
+          <rect x="250" y="52" width="360" height="16" rx="8" fill="url(#soft)" stroke="#0ea5a3" stroke-width="1.2"/>
+          <text x="430" y="64" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#0b5c43">bumper + proximity ring (L39)</text>
+          <!-- boxes -->
+          <g font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+            <rect x="360" y="82" width="140" height="52" rx="9" fill="#fff" stroke="#12805c" stroke-width="1.6"/>
+            <text x="430" y="103" text-anchor="middle" font-size="13" font-weight="700" fill="#14312a">Sensor mast</text>
+            <text x="430" y="121" text-anchor="middle" font-size="11" fill="#5c6b7a">LiDAR·RGB·thermal·depth (VI)</text>
+
+            <rect x="262" y="150" width="150" height="52" rx="9" fill="#fff" stroke="#12805c" stroke-width="1.6"/>
+            <text x="337" y="171" text-anchor="middle" font-size="13" font-weight="700" fill="#14312a">Environment pod</text>
+            <text x="337" y="189" text-anchor="middle" font-size="11" fill="#5c6b7a">NH₃·CO₂·T/RH·PM·mic (VII)</text>
+
+            <rect x="448" y="150" width="150" height="52" rx="9" fill="#fff" stroke="#12805c" stroke-width="1.6"/>
+            <text x="523" y="171" text-anchor="middle" font-size="13" font-weight="700" fill="#14312a">Compute bay</text>
+            <text x="523" y="189" text-anchor="middle" font-size="11" fill="#5c6b7a">Jetson + MCU + SSD (VIII)</text>
+
+            <rect x="300" y="216" width="260" height="72" rx="9" fill="url(#soft)" stroke="#0ea5a3" stroke-width="1.6"/>
+            <text x="430" y="245" text-anchor="middle" font-size="13" font-weight="700" fill="#14312a">LiFePO₄ battery + BMS (IX)</text>
+            <text x="430" y="264" text-anchor="middle" font-size="11" fill="#0b5c43">low &amp; central mass · 24V bus · DC-DC</text>
+
+            <rect x="262" y="302" width="150" height="52" rx="9" fill="#fff" stroke="#12805c" stroke-width="1.6"/>
+            <text x="337" y="323" text-anchor="middle" font-size="13" font-weight="700" fill="#14312a">Biocide tank</text>
+            <text x="337" y="341" text-anchor="middle" font-size="11" fill="#5c6b7a">pump + level (V)</text>
+
+            <rect x="448" y="302" width="150" height="52" rx="9" fill="#fff" stroke="#12805c" stroke-width="1.6"/>
+            <text x="523" y="323" text-anchor="middle" font-size="13" font-weight="700" fill="#14312a">Height actuator</text>
+            <text x="523" y="341" text-anchor="middle" font-size="11" fill="#5c6b7a">raises/lowers drum (V)</text>
+
+            <rect x="262" y="368" width="336" height="42" rx="9" fill="url(#soft)" stroke="#0ea5a3" stroke-width="1.6"/>
+            <text x="430" y="394" text-anchor="middle" font-size="12.5" font-weight="700" fill="#14312a">Scarifier drum + fog nozzles + moisture probe (V)</text>
+          </g>
+          <circle cx="600" cy="120" r="14" fill="#b91c1c"/>
+          <text x="600" y="150" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="10" fill="#7a2f22">E-stop</text>
+        </svg>
+        </div>
+        <div class="cap"><b>Figure 50.2</b> — Top view: sensing at the front, heavy battery low and central for stability (L25), cleaning payload trailing at the rear.</div>
+      </div>
+      <h4>Build it in this order</h4>
+      <ol class="build">
+        <li><b>Rolling chassis (IV)</b> Frame, wheels, motors, drivers, battery, BMS, E-stop — get safe manual driving over litter first.</li>
+        <li><b>Motion control (IV)</b> Add MCU, encoders, IMU; tune closed-loop crawl speed and turn-in-place.</li>
+        <li><b>Perception (VI)</b> Mount LiDAR + cameras on the AI computer; bring up SLAM and obstacle avoidance.</li>
+        <li><b>Environment sensing (VII)</b> Add the gas/climate/moisture/mic pod; start logging bird-level maps.</li>
+        <li><b>Cleaning payload (V)</b> Fit the scarifier + actuator, then the tank, pump and fog nozzles.</li>
+        <li><b>Autonomy &amp; docking (IX–X)</b> Add the dock, homing, safe-speed, and dock-and-go patrols.</li>
+        <li><b>AI surveillance (VIII)</b> Deploy the detection models + audio health; wire up alerts and records.</li>
+      </ol>
+      <div class="note"><b>Priority:</b> lead with surveillance + litter aeration — highest value, lowest risk. Add biocide fogging and any bird/egg pickup last: they are the hardest and most safety-sensitive. That is how the foundations (Part I) tell you to sequence the build.</div>
+      <div class="builds"><b>Builds on</b> → every level, 1–49. <b>This is the machine.</b></div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="foot-in">
+      Building a Poultry Robot — a 50-level textbook · Octopus-style autonomous ground robot for broiler houses. Diagrams by Mermaid + hand-drawn SVG. Example parts are illustrative starting points; verify specs and safety ratings before purchase. Not affiliated with Octopus Biosafety.
+    </div>
+  </footer>
+</div>
 
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({
-    startOnLoad: true,
-    theme: 'base',
-    themeVariables: {
-      primaryColor: '#e7f6f0',
-      primaryBorderColor: '#12805c',
-      primaryTextColor: '#1a2430',
-      lineColor: '#5b6b7a',
-      fontFamily: '-apple-system, Segoe UI, Roboto, sans-serif',
-      fontSize: '14px'
-    }
+    startOnLoad:true, theme:'base', securityLevel:'loose',
+    themeVariables:{
+      primaryColor:'#e8f6f0', primaryBorderColor:'#12805c', primaryTextColor:'#14312a',
+      secondaryColor:'#eaf0ff', tertiaryColor:'#fdf3e5',
+      lineColor:'#5c6b7a', fontFamily:'-apple-system, Segoe UI, Roboto, sans-serif', fontSize:'14px'
+    },
+    flowchart:{ curve:'basis', padding:14, nodeSpacing:44, rankSpacing:52 }
   });
+</script>
+<script>
+  const b=document.body, mb=document.getElementById('menuBtn'), sc=document.getElementById('scrim');
+  mb.addEventListener('click',()=>b.classList.toggle('nav-open'));
+  sc.addEventListener('click',()=>b.classList.remove('nav-open'));
+  document.querySelectorAll('#toc a').forEach(a=>a.addEventListener('click',()=>b.classList.remove('nav-open')));
+  const links=new Map();
+  document.querySelectorAll('#toc a').forEach(a=>links.set(a.getAttribute('href').slice(1),a));
+  const obs=new IntersectionObserver((es)=>{
+    es.forEach(e=>{
+      if(e.isIntersecting){
+        const a=links.get(e.target.id);
+        if(a){ document.querySelectorAll('#toc a.active').forEach(x=>x.classList.remove('active'));
+          a.classList.add('active');
+          a.scrollIntoView({block:'nearest'}); }
+      }
+    });
+  },{rootMargin:'-45% 0px -50% 0px',threshold:0});
+  document.querySelectorAll('.chapter[id]').forEach(c=>obs.observe(c));
 </script>
 </body>
 </html>
