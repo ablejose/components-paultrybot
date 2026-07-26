@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PoultryBot — Component Datasheet & Build Reference</title>
+<meta name="description" content="Component datasheet for an Octopus-style autonomous ground robot for broiler poultry houses: cleaning (litter scarifying + biocide) and 24/7 surveillance. Why each part, how it works, with architecture, power, data-flow and layout diagrams." />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <span class="brand"><span class="dot"></span> PoultryBot <small>&nbsp;/ component datasheet</small></span>
+    <nav class="nav-links">
+      <a href="#overview">Overview</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#components">Components</a>
+      <a href="#power">Power</a>
+      <a href="#dataflow">Data flow</a>
+      <a href="#layout">Layout</a>
+      <a href="#bom">BOM</a>
+      <a href="#build">Build order</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1>PoultryBot — Component Datasheet</h1>
+    <p>An <b>Octopus-style autonomous ground robot</b> for broiler houses. It drives across the litter to <b>clean</b> (aerate litter + fog biocide) and <b>watch the flock</b> (health, mortality, environment) — 24/7. This page is the parts reference: what each component is, <b>why</b> it is needed, and <b>how</b> it works.</p>
+    <div class="chips">
+      <span class="chip accent">Ground AMR</span>
+      <span class="chip">Broiler / deep-litter</span>
+      <span class="chip">Litter scarifier</span>
+      <span class="chip">Biocide nebuliser</span>
+      <span class="chip">Edge-AI surveillance</span>
+      <span class="chip">Self-docking</span>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <section id="overview">
+    <h2><span class="num">01</span>Overview</h2>
+    <p class="lead">The design copies the working principle of the Octopus Biosafety ground robot (France): a low, self-recharging, all-terrain platform that continuously scarifies litter and nebulises disinfectant while mapping the barn environment — extended here with an edge-AI perception stack for mortality and health surveillance.</p>
+    <div class="grid">
+      <div class="card"><div class="kpi">9</div><h4>Subsystems</h4><p>Chassis, drive, cleaning payload, perception, environment, compute, power, comms, safety.</p></div>
+      <div class="card"><div class="kpi">2</div><h4>Core jobs</h4><p>Constant cleaning (litter + disinfection) and constant surveillance (health + climate).</p></div>
+      <div class="card"><div class="kpi">24V</div><h4>Power bus</h4><p>LiFePO4 pack feeding a protected 24V bus with 12V / 5V rails for logic and sensors.</p></div>
+      <div class="card"><div class="kpi">24/7</div><h4>Duty cycle</h4><p>Dock-and-go patrols with autonomous recharge between cleaning/scan passes.</p></div>
+    </div>
+    <div class="callout">Read every component row as <b>What &rarr; Why &rarr; How</b>. The "Example part" column names a concrete, buyable component so you can source a first prototype — swap freely for equivalents.</div>
+  </section>
+
+  <section id="architecture">
+    <h2><span class="num">02</span>System architecture</h2>
+    <p class="lead">How the blocks connect. A high-level AI computer (Jetson) handles perception, mapping and planning; a real-time microcontroller (MCU) owns safety-critical motor and tool control. Power flows from the battery through protection to a 24V bus and stepped-down rails.</p>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart TD
+  subgraph POWER["Power"]
+    BAT["LiFePO4 24V pack"] --> BMS["BMS + protection"]
+    BMS --> BUS["24V main bus"]
+    BUS --> D12["DC-DC 12V"]
+    BUS --> D5["DC-DC 5V"]
+  end
+  subgraph SENSE["Perception & environment"]
+    LID["2D/3D LiDAR"]
+    CAMS["RGB + thermal + depth cameras"]
+    ENV["NH3 / CO2 / temp / RH / PM"]
+    MIC["Mic array"]
+    ODO["IMU + wheel encoders"]
+  end
+  subgraph BRAIN["Compute"]
+    JET["Jetson Orin — AI, SLAM, planning"]
+    MCU["STM32 MCU — real-time control + safety"]
+  end
+  subgraph ACT["Actuators"]
+    DRV["Motor drivers"] --> MOT["Drive motors"]
+    SCAR["Scarifier drum motor"]
+    LIN["Tool height actuator"]
+    PUMP["Nebuliser pump + nozzles"]
+  end
+  COMMS["WiFi / 4G"] --> CLOUD[("Cloud dashboard & alerts")]
+
+  LID --> JET
+  CAMS --> JET
+  MIC --> JET
+  ENV --> MCU
+  ODO --> MCU
+  JET <--> MCU
+  JET --> COMMS
+  MCU --> DRV
+  MCU --> SCAR
+  MCU --> LIN
+  MCU --> PUMP
+  BUS --> DRV
+  D12 --> LID
+  D12 --> PUMP
+  D12 --> LIN
+  D5 --> JET
+  D5 --> MCU
+  D5 --> CAMS
+      </pre>
+      <div class="caption">Figure 1 — Block architecture. Solid arrows = data/command; power rails feed compute, sensors and actuators.</div>
+    </div>
+  </section>
+
+  <section id="components">
+    <h2><span class="num">03</span>Component datasheet</h2>
+    <p class="lead">Grouped by subsystem. Each table: the component, an example part, why it exists on this robot, and how it works.</p>
+
+    <!-- 1 CHASSIS -->
+    <div class="subsys">
+      <span class="tag">1 · Chassis & mobility</span>
+      <h3>The body that survives a poultry house</h3>
+      <p class="desc">A low, sealed, corrosion-proof platform that carries every module and can cross loose, uneven, damp litter without bogging down or letting dust and ammonia inside.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">Frame / chassis</td><td>Welded 6061 aluminium or 304 stainless skeleton</td><td>Rigid mounting for all subsystems; must resist constant washdown, moisture and ammonia corrosion.</td><td>Load-bearing skeleton; forces from wheels and scarifier transfer through it instead of flexing sensitive electronics.</td></tr>
+          <tr><td class="part">Sealed shell</td><td>IP65+ ABS/polycarbonate enclosure with gaskets</td><td>Keeps dust, litter, moisture and disinfectant out of electronics; lets you pressure-wash the robot between flocks.</td><td>Gasketed panels + cable glands form a continuous barrier; internal air kept at slight positive pressure by fan+filter.</td></tr>
+          <tr><td class="part">All-terrain wheels</td><td>4&times; 150–200 mm ribbed pneumatic/foam wheels</td><td>Large contact patch floats over deep litter; ribs give traction on loose bedding so the bot does not dig in.</td><td>Big diameter lowers ground pressure; tread grips the friable top layer to pull the chassis forward.</td></tr>
+          <tr><td class="part">Compliant suspension</td><td>Rocker mounts / spring dampers per wheel</td><td>Keeps all wheels loaded on lumps and keeps cameras/LiDAR steady for clean data.</td><td>Passive springs let each wheel move independently over bumps while the chassis stays level.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- 2 DRIVE -->
+    <div class="subsys">
+      <span class="tag">2 · Drive & motion control</span>
+      <h3>Making it move — precisely and slowly</h3>
+      <p class="desc">Differential drive gives torque at crawl speed (safe around birds) and turn-in-place agility. Encoders + IMU let the robot know where it is.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">Drive gearmotors</td><td>2&times; 24V BLDC gearmotors, ~100–200 W, high reduction</td><td>Deliver high low-speed torque to push through litter without stalling; brushless = long life, low maintenance.</td><td>Electromagnet coils spin the rotor; the gearbox trades speed for torque so the bot crawls with force.</td></tr>
+          <tr><td class="part">Motor driver / ESC</td><td>ODrive or VESC (dual-channel)</td><td>Turns MCU commands into precise, current-limited motor power; protects motors from overload.</td><td>Switches battery current to the motor coils with PWM; closed-loop control regulates speed/torque.</td></tr>
+          <tr><td class="part">Wheel encoders</td><td>Quadrature / hall encoders on each drive motor</td><td>Provide odometry (distance & speed) for navigation and closed-loop driving.</td><td>Count pulses as the shaft turns; pulse rate = speed, total count = distance travelled.</td></tr>
+          <tr><td class="part">IMU (9-DOF)</td><td>Bosch BNO085 / BMI270</td><td>Gives heading and tilt; fused with odometry it corrects wheel slip on loose litter.</td><td>MEMS accelerometer + gyroscope + magnetometer sense motion and orientation in 3 axes.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- 3 CLEANING -->
+    <div class="subsys">
+      <span class="tag">3 · Cleaning payload</span>
+      <h3>The Octopus core: scarify + disinfect</h3>
+      <p class="desc">The two functions that define an Octopus-style robot. Aerating litter keeps it dry and low-ammonia; nebulising biocide cuts the pathogen load and reduces antibiotic use.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">Scarifier drum</td><td>Rotating tine/rake drum + 24V motor &amp; gearbox</td><td>Aerates and de-cakes litter &rarr; moisture evaporates, ammonia (NH3) generation drops, footpad health improves.</td><td>Spinning tines dig into the top litter layer and lift/mix it with air as the robot drives forward.</td></tr>
+          <tr><td class="part">Tool height actuator</td><td>12V linear actuator, 50–100 mm stroke</td><td>Sets scarifying depth and lifts the drum clear for transit, docking and turns.</td><td>Motor turns a lead-screw that extends/retracts the rod, raising or lowering the drum.</td></tr>
+          <tr><td class="part">Biocide tank</td><td>5–10 L food-grade HDPE tank + level sensor</td><td>Onboard disinfectant reservoir for autonomous fogging runs; level sensor triggers refill alerts.</td><td>Gravity/pump feed to the nozzles; float or capacitive sensor reports remaining volume.</td></tr>
+          <tr><td class="part">Nebuliser pump + nozzles</td><td>Diaphragm/peristaltic pump + fine-mist (fogging) nozzles</td><td>Lays down an even micro-droplet fog of biocide across litter and surfaces without soaking them.</td><td>Pump pressurises the liquid; nozzles atomise it into fine droplets that settle uniformly.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- 4 PERCEPTION -->
+    <div class="subsys">
+      <span class="tag">4 · Perception & navigation</span>
+      <h3>Eyes for driving and for surveillance</h3>
+      <p class="desc">One sensor set does double duty: navigate safely around birds and equipment, and feed the AI models that detect dead birds, distribution and equipment faults.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">2D/3D LiDAR</td><td>RPLIDAR S2 / Livox Mid-360</td><td>Primary navigation sensor for SLAM mapping and reliable obstacle detection in low light and dust.</td><td>Fires laser pulses and times the reflections to measure distance in every direction &rarr; a live 2D/3D map.</td></tr>
+          <tr><td class="part">Depth (stereo) camera</td><td>Intel RealSense D435 / Luxonis OAK-D</td><td>3-D obstacle avoidance plus per-pixel depth for spotting birds, wet spots and objects on the floor.</td><td>Two offset lenses compute disparity between images to derive distance for each pixel.</td></tr>
+          <tr><td class="part">RGB camera</td><td>Global-shutter 1080p+ module</td><td>Feeds vision AI: dead-bird detection, bird distribution, drinker/feeder faults, litter condition.</td><td>CMOS sensor captures colour frames; global shutter avoids motion blur while driving.</td></tr>
+          <tr><td class="part">Thermal camera</td><td>FLIR Lepton 3.5 module</td><td>Works in darkness; heat signatures help flag sick/dead birds and hot/cold micro-zones.</td><td>A microbolometer array measures infrared radiation and maps it to a temperature image.</td></tr>
+          <tr><td class="part">Proximity + bumpers</td><td>ToF/ultrasonic ring + contact bumper switches</td><td>Last line of collision safety against birds, walls and equipment if vision/LiDAR miss something.</td><td>ToF/ultrasonic measure short-range distance; bumpers cut drive on physical contact.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- 5 ENVIRONMENT -->
+    <div class="subsys">
+      <span class="tag">5 · Environmental sensing</span>
+      <h3>Mapping the air the birds breathe</h3>
+      <p class="desc">Because the robot is on the floor, these readings are taken exactly where the birds live — far more meaningful than fixed ceiling sensors, especially for ammonia which pools low.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">Ammonia (NH3) sensor</td><td>Electrochemical NH3 cell (0–100 ppm)</td><td>NH3 is the #1 air-quality killer of growth and welfare; must be mapped at bird height.</td><td>Ammonia reacts at an electrode producing a current proportional to concentration.</td></tr>
+          <tr><td class="part">CO2 sensor</td><td>NDIR CO2 module (e.g. SenseAir)</td><td>Tells you whether ventilation is adequate; rising CO2 = under-ventilation.</td><td>Measures how much infrared light CO2 molecules absorb at their characteristic band.</td></tr>
+          <tr><td class="part">Temp + humidity</td><td>Sensirion SHT31/SHT45</td><td>Thermal comfort drives FCR; humidity predicts litter caking and ammonia release.</td><td>Capacitive/bandgap elements change with heat and moisture; digitised to °C and %RH.</td></tr>
+          <tr><td class="part">Dust / PM sensor</td><td>Laser scattering PM sensor (e.g. SPS30)</td><td>Airborne dust is a respiratory hazard to birds and workers and clogs equipment.</td><td>A laser illuminates passing particles; scattered light is counted to estimate mass/count.</td></tr>
+          <tr><td class="part">Litter moisture probe</td><td>Capacitive prong probe (rear-mounted)</td><td>Wet litter is the root cause of ammonia, caking and footpad burn — measure it directly.</td><td>Water changes the dielectric between the prongs; capacitance maps to % moisture.</td></tr>
+          <tr><td class="part">Light + mic array</td><td>Ambient lux sensor + MEMS microphone array</td><td>Verify the lighting program; audio AI detects respiratory rales, sneezing and stress calls.</td><td>Photodiode measures lux; multiple mics capture sound for ML classification + direction.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- 6 COMPUTE -->
+    <div class="subsys">
+      <span class="tag">6 · Compute & control</span>
+      <h3>Two brains: smart and safe</h3>
+      <p class="desc">A GPU computer for heavy AI and mapping; a deterministic microcontroller for the fast safety loop. Splitting them keeps motion control reliable even while AI is busy.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">Edge-AI computer</td><td>NVIDIA Jetson Orin Nano / NX</td><td>Runs vision + audio neural nets and SLAM on-board, so decisions do not depend on the network.</td><td>Its GPU runs many neural-network operations in parallel for real-time inference.</td></tr>
+          <tr><td class="part">Real-time MCU</td><td>STM32F4/F7 or Teensy 4.1</td><td>Owns motor, scarifier, pump and E-stop timing with guaranteed millisecond response.</td><td>Runs a fixed control loop reading sensors and driving outputs deterministically.</td></tr>
+          <tr><td class="part">Internal bus</td><td>CAN bus + USB3 + UART</td><td>Reliable wiring between compute, MCU and sensors in an electrically noisy shed.</td><td>CAN carries robust differential messages; USB3 handles camera/LiDAR bandwidth.</td></tr>
+          <tr><td class="part">Storage</td><td>NVMe SSD (256 GB+)</td><td>Buffers video, maps and logs when the network is down; holds the AI models.</td><td>Solid-state flash stores data locally; syncs to cloud when connected.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- 7 POWER -->
+    <div class="subsys">
+      <span class="tag">7 · Power system</span>
+      <h3>Safe energy, all shift</h3>
+      <p class="desc">LiFePO4 chemistry is chosen for safety and cycle life. A BMS protects the pack; DC-DC converters supply clean logic/sensor rails; an E-stop cuts motor power instantly.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">Battery pack</td><td>24V LiFePO4, 20–40 Ah</td><td>High current for motors, hundreds of cycles, and far safer (no thermal runaway) than Li-ion in a barn.</td><td>Stores energy in lithium-iron-phosphate cells and delivers it as stable DC.</td></tr>
+          <tr><td class="part">BMS</td><td>4S/8S battery management system</td><td>Prevents over/under-charge, over-current and over-temp; balances cells for long life &amp; safety.</td><td>Monitors each cell and opens a protection MOSFET if any limit is exceeded.</td></tr>
+          <tr><td class="part">DC-DC converters</td><td>24V&rarr;12V and 24V&rarr;5V buck modules</td><td>Sensors and logic need clean, correct voltages the raw pack cannot provide.</td><td>Switch-mode regulation steps the bus voltage down efficiently to each rail.</td></tr>
+          <tr><td class="part">Charging dock</td><td>Auto-dock with sprung contact pads</td><td>Enables unattended 24/7 operation — the robot recharges itself between passes.</td><td>The bot homes to the dock; contacts mate and the charger tops up the pack via the BMS.</td></tr>
+          <tr><td class="part">E-stop + contactor</td><td>Mushroom E-stop + main power contactor</td><td>Instant, hardware-level power cut for human and bird safety.</td><td>Pressing the button physically breaks the motor-power circuit independent of software.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- 8 COMMS -->
+    <div class="subsys">
+      <span class="tag">8 · Connectivity</span>
+      <h3>Getting data off the robot</h3>
+      <p class="desc">Telemetry, alerts and dashboards need a link out. WiFi covers the shed; optional cellular covers remote farms.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">WiFi module</td><td>Dual-band 802.11ac (on Jetson or USB)</td><td>Primary link to upload readings and receive commands within the house.</td><td>Radio transceiver exchanges data packets with the farm access point.</td></tr>
+          <tr><td class="part">4G/LTE modem</td><td>Quectel EG25-G (optional)</td><td>Backup/remote link so alerts reach the farmer even without on-site WiFi.</td><td>Connects to the cellular network to send/receive data over the internet.</td></tr>
+          <tr><td class="part">Antennas</td><td>External WiFi + LTE antennas</td><td>Metal-clad sheds block RF; external antennas keep the link reliable.</td><td>Convert electrical signals to radio waves and back for range.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- 9 SAFETY -->
+    <div class="subsys">
+      <span class="tag">9 · Safety & docking</span>
+      <h3>Bird-safe, human-safe, biosecure</h3>
+      <p class="desc">A robot working among live animals and people must slow or stop reliably, return home on its own, and never become a disease vector.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Component</th><th>Example part</th><th>Why it is needed</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td class="part">Human/animal detect</td><td>Vision person-detection + PIR</td><td>Collaborative-safety requirement: slow or stop near people and dense birds to avoid stress/injury.</td><td>Detects a person/bird in the path and commands the MCU into a safe-speed or stop state.</td></tr>
+          <tr><td class="part">Dock homing beacon</td><td>IR beacon or ArUco marker on the dock</td><td>Precise final approach so contacts mate every time for reliable recharge.</td><td>The bot's sensor/camera locks onto the beacon/marker and aligns to it.</td></tr>
+          <tr><td class="part">Status beacon + buzzer</td><td>RGB tower light + piezo buzzer</td><td>Tells staff what the robot is doing and warns birds/people before moving.</td><td>Colour/sound patterns signal running, docking, fault or E-stop states.</td></tr>
+          <tr><td class="part">Wheel wash / UV dock</td><td>Disinfectant tray or UV-C in the dock</td><td>Biosecurity: stop the robot spreading pathogens; one robot stays in one house.</td><td>Wheels/tools are cleaned at the dock between passes to lower cross-contamination.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section id="power">
+    <h2><span class="num">04</span>Power distribution</h2>
+    <p class="lead">One protected path from pack to loads. The E-stop/contactor sits between protection and the motor bus so motors can be killed without touching logic power.</p>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart LR
+  DOCK["Charging dock"] --> CHG["Onboard charger"]
+  CHG --> BMS["BMS + protection"]
+  BAT["LiFePO4 24V pack"] --> BMS
+  BMS --> ESTOP["E-stop / contactor"]
+  ESTOP --> BUS["24V main bus"]
+  BUS --> MD["Motor drivers → drive motors"]
+  BUS --> SC["Scarifier motor"]
+  BUS --> D12["DC-DC 12V"]
+  BUS --> D5["DC-DC 5V"]
+  D12 --> LID["LiDAR"]
+  D12 --> PMP["Nebuliser pump"]
+  D12 --> ACT["Height actuator"]
+  D5 --> JET["Jetson"]
+  D5 --> MCU["MCU"]
+  D5 --> SEN["Sensor suite"]
+      </pre>
+      <div class="caption">Figure 2 — Power tree. 24V bus feeds motors directly; 12V/5V rails feed everything else.</div>
+    </div>
+  </section>
+
+  <section id="dataflow">
+    <h2><span class="num">05</span>Control &amp; data flow</h2>
+    <p class="lead">The perceive &rarr; plan &rarr; act loop. Sensors feed the AI computer, which builds a world model and a plan; the MCU executes it on the hardware; telemetry streams to the cloud.</p>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart LR
+  S["Sensors: LiDAR, cameras, gas, mic, IMU"] --> P["Perception & AI (Jetson)"]
+  P --> W["World model / SLAM map"]
+  W --> PL["Task & path planner"]
+  PL --> CMD["Motion + tool commands"]
+  CMD --> MCU["Real-time MCU"]
+  MCU --> A["Motors · scarifier · pump · actuator"]
+  A -. "encoders / feedback" .-> S
+  P --> T["Telemetry & events"]
+  T --> C[("Cloud dashboard · mobile alerts · vet")]
+      </pre>
+      <div class="caption">Figure 3 — Closed-loop control with cloud telemetry for records and alerts.</div>
+    </div>
+  </section>
+
+  <section id="layout">
+    <h2><span class="num">06</span>Physical layout</h2>
+    <p class="lead">Top-view placement of the major components on the chassis. Heavy items (battery) sit low and central for stability; sensors face forward; the cleaning payload trails at the rear.</p>
+    <div class="diagram">
+      <div class="svg-wrap">
+      <svg viewBox="0 0 860 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Top-view component layout of the poultry robot">
+        <defs>
+          <style>
+            .lbl{font:600 13px -apple-system,Segoe UI,Roboto,sans-serif;fill:#1a2430}
+            .sub{font:500 11px -apple-system,Segoe UI,Roboto,sans-serif;fill:#5b6b7a}
+            .box{fill:#fff;stroke:#12805c;stroke-width:1.5;rx:8}
+            .soft{fill:#e7f6f0;stroke:#0ea5a3;stroke-width:1.3}
+            .lead{stroke:#9fb2bf;stroke-width:1;stroke-dasharray:3 3}
+          </style>
+        </defs>
+
+        <!-- chassis -->
+        <rect x="230" y="40" width="400" height="380" rx="28" fill="#f1f6f4" stroke="#1a2430" stroke-width="2"/>
+        <text x="430" y="30" text-anchor="middle" class="sub">FRONT</text>
+        <text x="430" y="448" text-anchor="middle" class="sub">REAR</text>
+
+        <!-- wheels -->
+        <rect x="200" y="80" width="30" height="70" rx="8" fill="#1a2430"/>
+        <rect x="630" y="80" width="30" height="70" rx="8" fill="#1a2430"/>
+        <rect x="200" y="310" width="30" height="70" rx="8" fill="#1a2430"/>
+        <rect x="630" y="310" width="30" height="70" rx="8" fill="#1a2430"/>
+        <text x="190" y="120" text-anchor="end" class="sub">wheel</text>
+        <text x="670" y="120" class="sub">wheel</text>
+
+        <!-- front bumper + proximity -->
+        <rect x="250" y="52" width="360" height="16" rx="8" class="soft"/>
+        <text x="430" y="64" text-anchor="middle" class="sub">bumper + ToF proximity ring</text>
+
+        <!-- sensor mast -->
+        <rect x="360" y="82" width="140" height="52" class="box" rx="8"/>
+        <text x="430" y="103" text-anchor="middle" class="lbl">Sensor mast</text>
+        <text x="430" y="121" text-anchor="middle" class="sub">LiDAR · RGB · thermal · depth</text>
+
+        <!-- env pod -->
+        <rect x="262" y="150" width="150" height="52" class="box" rx="8"/>
+        <text x="337" y="171" text-anchor="middle" class="lbl">Env. pod</text>
+        <text x="337" y="189" text-anchor="middle" class="sub">NH3·CO2·T/RH·PM·mic</text>
+
+        <!-- compute bay -->
+        <rect x="448" y="150" width="150" height="52" class="box" rx="8"/>
+        <text x="523" y="171" text-anchor="middle" class="lbl">Compute bay</text>
+        <text x="523" y="189" text-anchor="middle" class="sub">Jetson + MCU + SSD</text>
+
+        <!-- battery -->
+        <rect x="300" y="216" width="260" height="70" class="soft" rx="8"/>
+        <text x="430" y="245" text-anchor="middle" class="lbl">LiFePO4 battery + BMS</text>
+        <text x="430" y="264" text-anchor="middle" class="sub">low &amp; central mass · 24V bus · DC-DC</text>
+
+        <!-- biocide tank -->
+        <rect x="262" y="300" width="150" height="52" class="box" rx="8"/>
+        <text x="337" y="321" text-anchor="middle" class="lbl">Biocide tank</text>
+        <text x="337" y="339" text-anchor="middle" class="sub">pump + level sensor</text>
+
+        <!-- height actuator -->
+        <rect x="448" y="300" width="150" height="52" class="box" rx="8"/>
+        <text x="523" y="321" text-anchor="middle" class="lbl">Height actuator</text>
+        <text x="523" y="339" text-anchor="middle" class="sub">raises/lowers drum</text>
+
+        <!-- scarifier + nozzles rear -->
+        <rect x="262" y="366" width="336" height="40" class="soft" rx="8"/>
+        <text x="430" y="391" text-anchor="middle" class="lbl">Scarifier drum + nebuliser nozzles + moisture probe</text>
+
+        <!-- E-stop -->
+        <circle cx="600" cy="120" r="14" fill="#b91c1c"/>
+        <text x="600" y="150" text-anchor="middle" class="sub">E-stop</text>
+      </svg>
+      </div>
+      <div class="caption">Figure 4 — Top-view layout (schematic, not to scale). Front sensing, central mass, rear cleaning payload.</div>
+    </div>
+  </section>
+
+  <section id="bom">
+    <h2><span class="num">07</span>Indicative bill of materials</h2>
+    <p class="lead">Rough prototype-grade cost bands (USD) for sourcing a first unit. Prices vary widely by supplier and region — treat as planning figures, not quotes.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Subsystem</th><th>Key items</th><th>Indicative cost band</th></tr></thead>
+      <tbody>
+        <tr><td class="part">Chassis & mobility</td><td>Frame, sealed shell, wheels, suspension</td><td>$400 – $900</td></tr>
+        <tr><td class="part">Drive & motion</td><td>2&times; BLDC gearmotors, ODrive/VESC, encoders, IMU</td><td>$500 – $1,000</td></tr>
+        <tr><td class="part">Cleaning payload</td><td>Scarifier drum+motor, actuator, tank, pump, nozzles</td><td>$400 – $900</td></tr>
+        <tr><td class="part">Perception</td><td>LiDAR, depth cam, RGB, thermal, proximity</td><td>$900 – $2,200</td></tr>
+        <tr><td class="part">Environment</td><td>NH3, CO2, T/RH, PM, moisture, mic, light</td><td>$300 – $700</td></tr>
+        <tr><td class="part">Compute</td><td>Jetson Orin, STM32/Teensy, SSD, bus</td><td>$500 – $900</td></tr>
+        <tr><td class="part">Power</td><td>LiFePO4 pack, BMS, DC-DC, dock, E-stop</td><td>$400 – $800</td></tr>
+        <tr><td class="part">Connectivity</td><td>WiFi, optional 4G, antennas</td><td>$60 – $250</td></tr>
+        <tr><td class="part">Safety & docking</td><td>Beacon, tower light, wheel-wash dock</td><td>$150 – $400</td></tr>
+        <tr><td class="part"><b>Estimated total</b></td><td>Prototype single unit</td><td><b>~$3,600 – $8,000</b></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn">These are hobby/prototype-grade bands. A ruggedised, safety-certified commercial unit (like the Octopus) costs far more due to enclosure engineering, certification, and support.</div>
+  </section>
+
+  <section id="build">
+    <h2><span class="num">08</span>Suggested build order</h2>
+    <p class="lead">De-risk in stages: get it driving safely first, then add sensing, then the cleaning payload, then autonomy.</p>
+    <ol class="build">
+      <li><b>Rolling chassis</b> Assemble frame, wheels, motors, drivers, battery, BMS, E-stop. Goal: safe manual (RC) driving over litter.</li>
+      <li><b>Motion control</b> Add MCU, encoders, IMU; tune closed-loop crawl speed and turn-in-place.</li>
+      <li><b>Perception</b> Mount LiDAR + cameras on the Jetson; bring up SLAM mapping and obstacle avoidance.</li>
+      <li><b>Environment sensing</b> Add the gas/climate/moisture/mic pod; start logging bird-level maps to the dashboard.</li>
+      <li><b>Cleaning payload</b> Fit the scarifier drum + height actuator; then the tank, pump and fogging nozzles.</li>
+      <li><b>Autonomy & docking</b> Add the charging dock, homing beacon, human-detect safe-speed, and dock-and-go patrol scheduling.</li>
+      <li><b>AI surveillance</b> Deploy dead-bird / distribution / drinker-fault models and audio health detection; wire up alerts.</li>
+    </ol>
+    <div class="callout">Start with surveillance + litter aeration (highest value, lowest risk). Add biocide fogging and any pickup manipulation last — they are the hardest and most safety-sensitive.</div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="foot-inner">
+    PoultryBot component datasheet · Octopus-style autonomous ground robot for broiler houses. Diagrams rendered with Mermaid. Example part numbers are illustrative starting points — verify specs and safety ratings before purchase. Not affiliated with Octopus Biosafety.
+  </div>
+</footer>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#e7f6f0',
+      primaryBorderColor: '#12805c',
+      primaryTextColor: '#1a2430',
+      lineColor: '#5b6b7a',
+      fontFamily: '-apple-system, Segoe UI, Roboto, sans-serif',
+      fontSize: '14px'
+    }
+  });
+</script>
+</body>
+</html>
